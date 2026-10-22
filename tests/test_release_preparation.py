@@ -6,7 +6,7 @@ from pathlib import Path
 import hashlib
 import importlib.util
 import json
-import time
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,8 +17,9 @@ spec.loader.exec_module(release)
 
 class ReleaseEvidenceTests(unittest.TestCase):
     def setUp(self):
-        self.folder = ROOT / "work/release-evidence-tests" / str(time.time_ns())
-        self.folder.mkdir(parents=True)
+        parent = ROOT / "work/release-evidence-tests"
+        parent.mkdir(parents=True, exist_ok=True)
+        self.folder = Path(tempfile.mkdtemp(dir=parent))
         self.commit = "1" * 40
         self.artifacts = []
         for mode, name in (("portable", "UI_Center_v1.1.0_Windows_x64_Portable.zip"),
