@@ -61,6 +61,8 @@ UI_Center 的通用组件提炼自 Zerozero05 已有的桌面与 Android 程序�
 
 `gradle/actions` 的 [DISTRIBUTION.md](https://github.com/gradle/actions/blob/3f5f9adaf7d9fecd50b5935e54106014257a94e6/DISTRIBUTION.md)、[NOTICE](https://github.com/gradle/actions/blob/3f5f9adaf7d9fecd50b5935e54106014257a94e6/NOTICE)和 [缓存组件许可](https://github.com/gradle/actions/blob/3f5f9adaf7d9fecd50b5935e54106014257a94e6/licenses/gradle-actions-caching-license.txt)区分 MIT 的 action/basic caching 与专有 enhanced caching。官方说明在禁用缓存或使用 basic caching 时，不加载或使用专有缓存组件。本项目仅在 GitHub 托管 CI 引用该工具，禁用缓存，不把整个上游标为 MIT-only，也不把其组件纳入 UI 源码分发。
 
+正式源码发布使用 runner 预装的 [GitHub CLI](https://github.com/cli/cli)（[MIT 许可](https://github.com/cli/cli/blob/trunk/LICENSE)）调用 release create/download/edit；工具实际版本写入该次流程日志。它只用于已确认 v1.0.0 标签的源码打包、草稿附件下载校验与公开，不作为 UI 运行依赖，也未将 CLI 源码或本机凭据分发到仓库。
+
 ## 运行依赖与后续更新
 
 - Tkinter 示例使用 Python 与其 Tk/ttk 接口；Android 示例使用 Android 平台 Views API。具体支持范围与构建环境以各平台说明为准。

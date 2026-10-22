@@ -37,3 +37,53 @@ jobs:
           mkdir -p work/ci-state
           javac -encoding UTF-8 -d work/ci-state components/android/src/main/java/cn/local/uicenter/TaskState.java tests/android/TaskStateTest.java
           java -cp work/ci-state TaskStateTest
+
+  release:
+    name: Publish approved v1.0.0 source release
+    if: github.repository == 'Zerozero05/UI_Center' && github.ref == 'refs/tags/v1.0.0'
+    needs: [desktop, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Package and verify the approved source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/release
+          git archive --format=zip --prefix=UI_Center/ --output=work/release/UI_Center_v1.0.0_Source.zip HEAD
+          python3 - <<'PY'
+          import hashlib
+          import pathlib
+          import subprocess
+          import zipfile
+          package = pathlib.Path('work/release/UI_Center_v1.0.0_Source.zip')
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().rstrip('\0').split('\0')
+          with zipfile.ZipFile(package) as archive:
+              names = {item.filename for item in archive.infolist() if not item.is_dir()}
+              assert names == {'UI_Center/' + name for name in tracked}
+              for name in tracked:
+                  assert archive.read('UI_Center/' + name) == subprocess.check_output(['git', 'show', 'HEAD:' + name]), name
+          digest = hashlib.sha256(package.read_bytes()).hexdigest()
+          package.with_name('SHA256SUMS').write_text(digest + '  ' + package.name + '\n', encoding='utf-8')
+          print(f'PASS: source archive matches all {len(tracked)} tracked files; SHA256={digest}')
+          PY
+          cp docs/releases/v1.0.0.md work/release-notes.md
+          printf '\n源码提交：`%s`。本次检查：[GitHub Actions](https://github.com/%s/actions/runs/%s)。\n' "$(git rev-parse HEAD)" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> work/release-notes.md
+      - name: Create draft, verify uploaded bytes and publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh --version
+          gh release create v1.0.0 work/release/UI_Center_v1.0.0_Source.zip work/release/SHA256SUMS --verify-tag --draft --title v1.0.0 --notes-file work/release-notes.md
+          mkdir -p work/release-download
+          gh release download v1.0.0 --dir work/release-download
+          cmp work/release/SHA256SUMS work/release-download/SHA256SUMS
+          (cd work/release-download && sha256sum --check SHA256SUMS)
+          gh release edit v1.0.0 --draft=false --latest

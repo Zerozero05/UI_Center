@@ -23,6 +23,8 @@ shadcn/ui、Storybook、Style Dictionary、Sun Valley ttk theme、ttkbootstrap�
 
 GitHub Actions 流程按固定提交使用 `actions/checkout`、`actions/setup-python`、`actions/setup-java` 和 `gradle/actions`。这些是构建/CI 工具依赖，不是 UI 运行依赖；本仓库没有复制或再分发其工具代码/二进制。前三项上游使用 MIT 许可；具体提交和完整许可链接见[工具来源](references/sources.md#构建与-ci-工具依赖)。
 
+仅针对已确认 v1.0.0 的源码发布任务使用 runner 预装的 GitHub CLI（MIT），实际工具版本记录在该次流程日志；来源链接见同一来源说明。不随源码包分发 CLI 二进制。
+
 `gradle/actions` 的[完整许可](https://github.com/gradle/actions/blob/3f5f9adaf7d9fecd50b5935e54106014257a94e6/LICENSE)声明主体 MIT，同时包含单独许可的专有 `gradle-actions-caching` 组件，不能将整个上游概括为 MIT-only。其 [DISTRIBUTION.md](https://github.com/gradle/actions/blob/3f5f9adaf7d9fecd50b5935e54106014257a94e6/DISTRIBUTION.md)和 [NOTICE](https://github.com/gradle/actions/blob/3f5f9adaf7d9fecd50b5935e54106014257a94e6/NOTICE)说明缓存禁用时不加载或使用该专有组件；本项目的托管 CI 设置 `cache-disabled: true`。构建工具的许可不会替换 UI_Center 源码的 AGPL-3.0-only。
 
 以后引入外部代码、资源或二进制时，应按实际采用部分补充原始版权和许可文本；适用时保留 NOTICE 并注明修改。Python/Tk、Android 平台和构建工具的环境许可由各自发行方提供；本项目不随源码示例分发这些工具的二进制。
