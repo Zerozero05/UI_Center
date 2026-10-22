@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "themes": {
+    "light": {
+      "background": "#f3f5f8", "surface": "#ffffff", "foreground": "#17212f",
+      "muted": "#53616d", "border": "#8493a5", "accent": "#155eef",
+      "accent_active": "#1045b5", "selected_background": "#1559c7",
+      "selected_foreground": "#ffffff", "input_background": "#ffffff",
+      "hover": "#e4ebf5", "disabled": "#66717f", "success": "#167345",
+      "warning": "#805000", "error": "#b42318", "focus": "#1045b5"
+    },
+    "dark": {
+      "background": "#151c27", "surface": "#1f2937", "foreground": "#e7edf5",
+      "muted": "#b2bdca", "border": "#8393a8", "accent": "#8ab4ff",
+      "accent_active": "#b8d1ff", "selected_background": "#8ab4ff",
+      "selected_foreground": "#152238", "input_background": "#111827",
+      "hover": "#334155", "disabled": "#9aa7b8", "success": "#7fd8a8",
+      "warning": "#f1c77c", "error": "#ffb4ab", "focus": "#b8d1ff"
+    }
+  },
+  "spacing": {"xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24},
+  "typography": {
+    "body": {"tk_points": 10, "android_sp": 16},
+    "small": {"tk_points": 9, "android_sp": 14},
+    "heading": {"tk_points": 16, "android_sp": 22}
+  },
+  "radii": {"control": 6}
+}

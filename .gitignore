@@ -1,0 +1,18 @@
+# Local build products and task records
+__pycache__/
+*.py[cod]
+.gradle/
+**/build/
+local.properties
+.idea/
+.DS_Store
+work/
+outputs/
+task_plan.md
+progress.md
+findings.md
+WORK_CHECKPOINT.md
+*.apk
+*.aab
+*.jks
+*.keystore
