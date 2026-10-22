@@ -31,6 +31,6 @@ GitHub Actions 流程按固定提交使用 `actions/checkout`、`actions/setup-p
 
 v1.1.0 Windows 运行包包含实际构建解释器的 Python、Tcl/Tk 与所需二进制，保留实际分发中的完整许可及版权，收集到包内 `assets/licenses`，在浏览器许可入口读取。AGPL 许可、改编来源和同版本完整源码入口同时保留。源码包仍不附环境二进制。
 
-PyInstaller 6.22.3 是构建工具，适用其 GPL 例外与部分 Apache-2.0 条款；没有改编其源码。官方例外不要求随成品分发 PyInstaller 自身许可，但不能据此省略 Python/Tcl/Tk 或其他实际运行依赖的声明。固定版本和官方链接见[来源记录](references/sources.md#windows-运行版的构建与二进制分发)。新增 artifact Actions 同为构建工具，固定提交及许可记在同一记录，不复制进运行包。
+PyInstaller 6.22.3 是构建工具，适用其 GPL 例外与部分 Apache-2.0 条款；没有改编其源码。官方例外不要求随成品分发 PyInstaller 自身许可，但不能据此省略 Python/Tcl/Tk 或其他实际运行依赖的声明。固定版本和官方链接见[来源记录](references/sources.md#windows-运行版的构建与二进制分发)。新增 upload-artifact Action 为构建工具，固定提交及许可记在同一记录，不复制进运行包。
 
 以后引入外部代码、资源或二进制时，应按实际采用部分补充原始版权和许可文本；适用时保留 NOTICE 并注明修改。Android 平台和其他构建工具仍由各自发行方提供环境。

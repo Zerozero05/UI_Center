@@ -73,3 +73,9 @@ Implementation references: [PyInstaller usage](https://pyinstaller.org/en/stable
 [data files](https://pyinstaller.org/en/stable/spec-files.html#adding-data-files),
 and [entry-point-relative resources](https://pyinstaller.org/en/stable/runtime-information.html#using-file).
 These are tool/API references; no upstream packaging implementation was copied.
+
+For a reviewed v1.1.0 release, the annotated tag contains one `Candidate-Run: N`
+line naming the successful same-commit CI run. The release job checks that run's
+commit and conclusion, downloads its exact artifact, and binds integrity/smoke
+evidence to the bytes before publishing. A fresh tag build is a regression gate,
+not permission to substitute different binaries for the reviewed candidate.

@@ -69,7 +69,7 @@ UI_Center 的通用组件提炼自 Zerozero05 已有的桌面与 Android 程序�
 
 - [PyInstaller v6.22.3](https://github.com/pyinstaller/pyinstaller/tree/ecd7993d65c43b254f4e3f718e36d5b4a70a3ed5)，固定提交 `ecd7993d65c43b254f4e3f718e36d5b4a70a3ed5`，用于从相同入口构建 onedir 与 onefile；本项目未改编其工具源码。官方说明包括 [运行方式](https://pyinstaller.org/en/v6.22.3/operating-mode.html)、[资源路径](https://pyinstaller.org/en/v6.22.3/runtime-information.html)和[许可例外](https://pyinstaller.org/en/v6.22.3/license.html)。例外不替代应用及实际运行依赖的许可。
 - Windows 包实际分发 Python 和 Tcl/Tk 运行二进制；构建时从实际解释器及 Tcl/Tk 分发中收集完整许可/版权，不用网页摘要替代原文。原始条款见 [Python](https://docs.python.org/3.12/license.html) 与 [Tcl/Tk](https://www.tcl-lang.org/software/tcltk/license.html)。实际解释器、工具链版本与源码提交写入包内 build-info 和构建报告。
-- CI 使用 [actions/upload-artifact v7.0.2](https://github.com/actions/upload-artifact/tree/cf430e030ddbb5b0abf93d22962f4752f3646cd9) 和 [actions/download-artifact v8.0.2](https://github.com/actions/download-artifact/tree/9000827ccba6bdab643e8b6fd33ac0654aef8333)，均为 [MIT](https://github.com/actions/upload-artifact/blob/cf430e030ddbb5b0abf93d22962f4752f3646cd9/LICENSE) 构建工具依赖，用于传递已验证运行包；不作为应用运行依赖或复制进应用。
+- CI 使用 [actions/upload-artifact v7.0.2](https://github.com/actions/upload-artifact/tree/cf430e030ddbb5b0abf93d22962f4752f3646cd9)，为 [MIT](https://github.com/actions/upload-artifact/blob/cf430e030ddbb5b0abf93d22962f4752f3646cd9/LICENSE) 构建工具依赖，用于保存已验证运行包；发布用GitHub CLI下载注释标签指定的同提交候选，不作为应用运行依赖或复制进应用。
 - 本版浏览器、内容索引和轻量文本呈现由本项目实现，复用上述既有组件与规范；没有引入新的第三方 UI、Markdown 或浏览器运行库。
 - 应用图标为本项目自绘的几何面板图案，保留SVG与标准库生成代码；没有采用外部图标、字体或图片。`packaging/licenses/sources.json` 逐项记录打包时所需原始许可快照的固定上游版本、URL与SHA256；这些快照版本标明许可来源，不冒充实际二进制版本，实际运行库文件清单另行生成。
 
