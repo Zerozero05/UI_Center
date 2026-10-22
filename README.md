@@ -54,6 +54,7 @@ python examples/tkinter/demo.py
 
 | 日期 | 涉及内容 | 主要变更 |
 | --- | --- | --- |
+| 2026-10-23 | 源码上传与云端核验（未发行） | 1、上传源码并核对全部 46 个远端文件，仓库已公开。<br>2、Windows 测试、Android 构建与状态检查在 GitHub Actions 通过。<br>3、文档检查排除生成目录，统一源码验证范围。<br>[本次完整记录](CHANGELOG.md#remote-2026-10-23) |
 | 2026-10-23 | 首版验收范围（文档更新，未发行） | 1、确认 Windows 11 优先的首版验收范围。<br>2、保留 Android 源码及构建结果，设备验收后延并继续标明未测。<br>[本次完整记录](CHANGELOG.md#scope-2026-10-23) |
 | 2026-10-23 | 首次建设（未发行） | 1、建立 UI 规范、六类模式、案例与共享设计参数。<br>2、提供 Tkinter/ttk 和 Java Android Views 源码及独立模拟示例。<br>3、整理固定来源、许可、复制与验证流程。<br>[本次完整记录](CHANGELOG.md#initial-2026-10-23) |
 

@@ -59,7 +59,8 @@ def main():
     documents = [ROOT / name for name in ('README.md', 'AGENTS.md', 'CHANGELOG.md',
                   'VALIDATION.md', 'THIRD_PARTY_NOTICES.md')]
     for folder in ('docs', 'components', 'examples', 'references', 'tokens'):
-        documents.extend((ROOT / folder).rglob('*.md'))
+        documents.extend(path for path in (ROOT / folder).rglob('*.md')
+                         if not {'build', '.gradle'}.intersection(path.relative_to(ROOT).parts))
     checked = 0
     for doc in documents:
         text = doc.read_text(encoding='utf-8-sig')
