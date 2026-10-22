@@ -61,18 +61,29 @@ class TaskPanel(ttk.Frame):
         self.count = tk.StringVar(master=self)
         self.status = tk.StringVar(master=self)
         self.selected_detail = tk.StringVar(master=self, value="选择一行查看完整名称与结果")
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(3, weight=1)
         top = ttk.Frame(self)
-        top.pack(fill="x")
+        top.grid(row=0, column=0, sticky="ew")
         self.status_label = ttk.Label(top, textvariable=self.status)
         self.status_label.pack(side="left")
         ttk.Label(top, textvariable=self.count, style="UIC.Muted.TLabel").pack(side="right")
         self.progress = ttk.Progressbar(self, mode="determinate", maximum=1, takefocus=False)
-        self.progress.pack(fill="x", pady=(gap["sm"], gap["sm"]))
-        self.message_label = ttk.Label(self, textvariable=self.message, justify="left", wraplength=540)
-        self.message_label.pack(fill="x", pady=(0, gap["md"]))
-        self.message_label.bind("<Configure>", self._wrap_message)
+        self.progress.grid(row=1, column=0, sticky="ew", pady=(gap["sm"], gap["sm"]))
+        message_box = self.message_box = ttk.Frame(self)
+        message_box.grid(row=2, column=0, sticky="ew", pady=(0, gap["md"]))
+        self.message_label = tk.Text(message_box, height=3, width=1, wrap="word", borderwidth=0,
+                                     state="disabled", font="TkDefaultFont", takefocus=True, undo=False)
+        message_scroll = ttk.Scrollbar(message_box, orient="vertical", command=self.message_label.yview)
+        self.message_label.configure(yscrollcommand=message_scroll.set)
+        message_scroll.pack(side="right", fill="y")
+        self.message_label.pack(fill="both", expand=True)
+        self.message_label.bind("<<ThemeChanged>>", self._refresh_message_colors)
+        self.message_label.bind("<Tab>", lambda event: self._message_tab(event, False))
+        self.message_label.bind("<Shift-Tab>", lambda event: self._message_tab(event, True))
+        self._refresh_message_colors()
         table = ttk.Frame(self)
-        table.pack(fill="both", expand=True)
+        table.grid(row=3, column=0, sticky="nsew")
         self.results = ttk.Treeview(table, columns=("item", "status"), show="headings", height=7, takefocus=True)
         self.results.heading("item", text="项目")
         self.results.heading("status", text="结果")
@@ -83,15 +94,31 @@ class TaskPanel(ttk.Frame):
         scrollbar.pack(side="right", fill="y")
         horizontal = ttk.Scrollbar(self, orient="horizontal", command=self.results.xview)
         self.results.configure(xscrollcommand=horizontal.set)
-        horizontal.pack(fill="x")
+        horizontal.grid(row=4, column=0, sticky="ew")
         self.results.pack(fill="both", expand=True)
         self.detail_entry = ttk.Entry(self, textvariable=self.selected_detail, state="readonly", takefocus=True)
-        self.detail_entry.pack(fill="x", pady=(gap["sm"], 0))
+        self.detail_entry.grid(row=5, column=0, sticky="ew", pady=(gap["sm"], 0))
         self.results.bind("<<TreeviewSelect>>", self._select_result)
         self.set_state("idle", message="任务开始后将在这里显示进度和结果。")
 
-    def _wrap_message(self, event):
-        self.message_label.configure(wraplength=max(100, event.width))
+    @staticmethod
+    def _message_tab(event, previous):
+        target = event.widget.tk_focusPrev() if previous else event.widget.tk_focusNext()
+        if target is not None:
+            target.focus_set()
+        return "break"
+
+    def _refresh_message_colors(self, _event=None):
+        style = ttk.Style(self)
+        options = {"background": style.lookup("TEntry", "fieldbackground"),
+                   "foreground": style.lookup("TLabel", "foreground"),
+                   "insertbackground": style.lookup("TLabel", "foreground"),
+                   "highlightbackground": style.lookup(".", "bordercolor"),
+                   "highlightcolor": style.lookup(".", "focuscolor"),
+                   "selectbackground": style.lookup(".", "selectbackground"),
+                   "inactiveselectbackground": style.lookup(".", "selectbackground"),
+                   "selectforeground": style.lookup(".", "selectforeground")}
+        self.message_label.configure(**{name: value for name, value in options.items() if value})
 
     def _select_result(self, _event=None):
         selection = self.results.selection()
@@ -111,6 +138,11 @@ class TaskPanel(ttk.Frame):
         self.status.set(title)
         self.status_label.configure(style=style)
         self.message.set(message)
+        self.message_label.configure(state="normal")
+        self.message_label.delete("1.0", "end")
+        self.message_label.insert("1.0", message)
+        self.message_label.configure(state="disabled")
+        self.message_label.yview_moveto(0)
         self.count.set(f"{completed} / {total}" if total else "")
         self.progress.configure(maximum=max(1, total), value=completed)
         if results is not None:

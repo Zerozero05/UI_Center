@@ -17,7 +17,28 @@
 | 在其他程序中采用、升级源码 | [复制与更新](docs/consumption.md) |
 | 实际验证及未测范围 | [验证记录](VALIDATION.md) |
 
-## 快速开始
+## Windows 11 运行版
+
+v1.1.0 新增 **规范与组件浏览器**，可离线查阅规范、按平台和场景筛选、复制采用说明，并预览真实 Tkinter 组件。Android 条目提供源码和使用说明，设备运行验收仍后延。
+
+正式附件准备完成后统一放在 [GitHub Releases](https://github.com/Zerozero05/UI_Center/releases)：
+
+| 附件 | 用途 |
+| --- | --- |
+| `UI_Center_v1.1.0_Windows_x64_Portable.zip` | 推荐日常使用。解压整个目录后运行 `UI_Center.exe`，保留旁边的 `_internal` |
+| `UI_Center_v1.1.0_Windows_x64.exe` | 单文件运行；启动时释放临时运行文件，无需自行安装 Python |
+| `UI_Center_v1.1.0_Source.zip` | 完整源码、规范、测试、构建脚本和许可，供开发与复用 |
+| `SHA256SUMS` | 对应附件的 SHA-256 校验值 |
+
+运行包只包含必需的 Python/Tcl/Tk、只读内容及许可，不包含 Android 工具链、开发缓存或本机工作记录。实际冻结验证状态见 [VALIDATION](VALIDATION.md)；使用流程、目录及升级建议见 [浏览器说明](docs/desktop-browser.md)。
+
+## 源码快速开始
+
+浏览器源码入口（包含 Tcl/Tk 的 Python 3.10+）：
+
+```console
+python apps/desktop/main.py
+```
 
 ### Tkinter
 
@@ -54,6 +75,7 @@ python examples/tkinter/demo.py
 
 | 日期 | 涉及内容 | 主要变更 |
 | --- | --- | --- |
+| 2026-10-23 | v1.1.0 浏览器与 Windows 运行版准备 | 1、新增离线规范/组件检索、源码用法复制及真实桌面预览。<br>2、准备便携 ZIP 与单文件 EXE，统一资源、版本、许可和冻结验证。<br>[本次完整记录](CHANGELOG.md#v110-2026-10-23) |
 | 2026-10-23 | v1.0.0 首次源码发行 | 1、提供首个正式源码版及校验文件。<br>2、仅对已确认的 v1.0.0 标签，在两端检查通过后核对附件并发布。<br>[本次完整记录](CHANGELOG.md#v100-2026-10-23) |
 | 2026-10-23 | 源码上传与云端核验（未发行） | 1、上传源码并核对全部 46 个远端文件，仓库已公开。<br>2、Windows 测试、Android 构建与状态检查在 GitHub Actions 通过。<br>3、文档检查排除生成目录，统一源码验证范围。<br>[本次完整记录](CHANGELOG.md#remote-2026-10-23) |
 | 2026-10-23 | 首版验收范围（文档更新，未发行） | 1、确认 Windows 11 优先的首版验收范围。<br>2、保留 Android 源码及构建结果，设备验收后延并继续标明未测。<br>[本次完整记录](CHANGELOG.md#scope-2026-10-23) |

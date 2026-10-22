@@ -16,7 +16,7 @@ from ui_center import ActionBar, TaskPanel, apply_theme, load_tokens
 
 
 class DemoWindow:
-    def __init__(self, root, *, tokens_path=None, interval_ms=240):
+    def __init__(self, root, *, tokens_path=None, interval_ms=240, theme_variable=None):
         self.root = root
         self.tokens_path = tokens_path
         self.interval_ms = interval_ms
@@ -27,28 +27,32 @@ class DemoWindow:
         self.busy = self.cancelling = False
         tokens = load_tokens(tokens_path)
         self.gap = tokens["spacing"]
-        self.theme = tk.StringVar(master=root, value="light")
+        self.theme = theme_variable if theme_variable is not None else tk.StringVar(master=root, value="light")
         self.project = tk.StringVar(master=root, value="演示资料")
         self.amount = tk.StringVar(master=root, value="12")
         self.outcome = tk.StringVar(master=root, value="正常完成")
-        apply_theme(root, tokens_path=tokens_path)
+        apply_theme(root, self.theme.get(), tokens_path=tokens_path)
         root.title("UI_Center · 桌面组件示例")
         root.geometry("760x650")
         root.minsize(580, 570)
         outer = ttk.Frame(root, padding=self.gap["lg"])
         outer.pack(fill="both", expand=True)
+        outer.columnconfigure(0, weight=1)
+        outer.rowconfigure(4, weight=1)
         header = ttk.Frame(outer)
-        header.pack(fill="x", pady=(0, self.gap["md"]))
+        header.grid(row=0, column=0, sticky="ew", pady=(0, self.gap["md"]))
         ttk.Label(header, text="任务与结果", style="UIC.Heading.TLabel").pack(side="left")
         self.theme_picker = ttk.Combobox(header, textvariable=self.theme, state="readonly",
                                         values=("light", "dark"), width=8, takefocus=True)
         self.theme_picker.pack(side="right")
         ttk.Label(header, text="主题 ", style="UIC.Muted.TLabel").pack(side="right")
         self.theme_picker.bind("<<ComboboxSelected>>", self.change_theme)
-        ttk.Label(outer, text="演示：主次操作、任务取消、结果反馈和明暗主题。不会读写你的文件。",
-                  style="UIC.Muted.TLabel", wraplength=700).pack(fill="x", pady=(0, self.gap["md"]))
+        introduction = ttk.Label(outer, text="演示：主次操作、任务取消、结果反馈和明暗主题。不会读写你的文件。",
+                                 style="UIC.Muted.TLabel", wraplength=700)
+        introduction.grid(row=1, column=0, sticky="ew", pady=(0, self.gap["md"]))
+        introduction.bind("<Configure>", lambda event: introduction.configure(wraplength=max(100, event.width)))
         form = ttk.LabelFrame(outer, text="演示参数", padding=self.gap["md"])
-        form.pack(fill="x", pady=(0, self.gap["md"]))
+        form.grid(row=2, column=0, sticky="ew", pady=(0, self.gap["md"]))
         form.columnconfigure(1, weight=1)
         self.inputs = []
         for row, (label, variable) in enumerate((("项目名称", self.project), ("项目数量（1–50）", self.amount))):
@@ -63,12 +67,14 @@ class DemoWindow:
         self.inputs.append(choice)
         self.actions = ActionBar(outer, on_primary=self.start, on_cancel=self.cancel,
                                  on_secondary=self.reset, secondary_text="重置演示", spacing=self.gap)
-        self.actions.pack(fill="x", pady=(0, self.gap["md"]))
+        self.actions.grid(row=3, column=0, sticky="ew", pady=(0, self.gap["md"]))
         self.panel = TaskPanel(outer, spacing=self.gap)
-        self.panel.pack(fill="both", expand=True)
+        self.panel.grid(row=4, column=0, sticky="nsew")
         self.panel.set_state("idle", message="选择参数后开始；所有结果均为虚构数据。")
-        ttk.Label(outer, text="Tab / Shift+Tab 移动焦点；空格激活按钮。示例任务在下一步检查取消请求。",
-                  style="UIC.Muted.TLabel", wraplength=700).pack(fill="x", pady=(self.gap["md"], 0))
+        self.footer = ttk.Label(outer, text="Tab / Shift+Tab 移动焦点；空格激活按钮。示例任务在下一步检查取消请求。",
+                                style="UIC.Muted.TLabel", wraplength=700)
+        self.footer.grid(row=5, column=0, sticky="ew", pady=(self.gap["md"], 0))
+        self.footer.bind("<Configure>", lambda event: self.footer.configure(wraplength=max(100, event.width)))
         self.inputs[0].focus_set()
         root.protocol("WM_DELETE_WINDOW", self.close)
 

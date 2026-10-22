@@ -1,0 +1,2 @@
+# Build tool only. The desktop app itself uses Python/Tk and the standard library.
+PyInstaller==6.22.3

@@ -104,9 +104,9 @@ class TkBehaviorTests(unittest.TestCase):
         self.assertEqual(int(app.actions.secondary.pack_info()["padx"]), 13)
         self.assertEqual(int(app.inputs[0].grid_info()["pady"]), 7)
         for widget, expected in ((app.panel.progress, (13, 13)),
-                                 (app.panel.message_label, (0, 21)),
+                                 (app.panel.message_box, (0, 21)),
                                  (app.panel.detail_entry, (13, 0))):
-            actual = widget.pack_info()["pady"]
+            actual = widget.grid_info()["pady"]
             # Tk reports symmetric padding as one integer, asymmetric as a pair.
             actual = (actual, actual) if isinstance(actual, int) else actual
             self.assertEqual(actual, expected)
@@ -204,6 +204,30 @@ class TkBehaviorTests(unittest.TestCase):
         self.root.update()
         self.assertEqual(app.panel.selected_detail.get(), "很长的虚构项目名称" * 10 + " · 已完成（演示）")
         self.assertEqual(str(app.panel.detail_entry.cget("state")), "readonly")
+
+    def test_feedback_full_result_and_footer_are_visible_at_both_sizes(self):
+        app = self.make_demo()
+        message = "长任务说明需要能滚动查看，不能挤走结果字段或键盘说明。" * 50
+        app.panel.set_state("running", completed=1, total=8, message=message,
+                            results=[("保留的完整结果名称", "已完成")])
+        for geometry in ("760x650", "580x570"):
+            self.root.geometry(geometry)
+            self.root.update()
+            for widget in (app.panel.message_label, app.panel.results, app.panel.detail_entry, app.footer):
+                self.assertTrue(widget.winfo_ismapped(), geometry)
+                self.assertGreater(widget.winfo_height(), 10, geometry)
+                self.assertLessEqual(widget.winfo_rooty() + widget.winfo_height(),
+                                     self.root.winfo_rooty() + self.root.winfo_height(), geometry)
+            app.panel.message_label.yview_moveto(1)
+            self.root.update()
+            self.assertGreater(app.panel.message_label.yview()[0], 0)
+            self.assertEqual(app.panel.message_label.get("1.0", "end-1c"), message)
+        app.theme.set("dark")
+        app.change_theme()
+        self.root.update()
+        self.assertEqual(app.panel.message_label.cget("background"), load_tokens()["themes"]["dark"]["input_background"])
+        self.assertEqual(app.panel.message_label.cget("highlightcolor"), load_tokens()["themes"]["dark"]["focus"])
+        self.assertEqual(app.panel.message_label.cget("highlightbackground"), load_tokens()["themes"]["dark"]["border"])
 
     def test_close_removes_pending_task_callback(self):
         app = self.make_demo()

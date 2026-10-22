@@ -1,4 +1,4 @@
-name: Source and example checks
+name: Source and runtime checks
 on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
@@ -13,8 +13,32 @@ jobs:
           python-version: '3.12'
       - name: Check documentation and design tokens
         run: python -B scripts/verify_repository.py
-      - name: Exercise real Tk widgets and an isolated source consumer
-        run: python -B -m unittest discover -s tests -p test_tkinter_ui.py -v
+      - name: Exercise original widgets and desktop browser
+        run: python -B -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Install the isolated build requirements
+        run: |
+          python -m venv work/build-env
+          ./work/build-env/Scripts/python.exe -m pip install --disable-pip-version-check -r requirements-desktop-build.txt
+      - name: Build both Windows runtime forms
+        run: ./work/build-env/Scripts/python.exe -B scripts/build_desktop.py --output-dir work/desktop-dist --version 1.1.0
+      - name: Verify package resources and provenance
+        run: ./work/build-env/Scripts/python.exe -B scripts/verify_desktop_package.py --portable-zip work/desktop-dist/UI_Center_v1.1.0_Windows_x64_Portable.zip --single-exe work/desktop-dist/UI_Center_v1.1.0_Windows_x64.exe --version 1.1.0 --source-commit ${{ github.sha }} --report work/desktop-dist/verify-desktop-report.json
+      - name: Run both frozen apps away from source paths
+        shell: pwsh
+        run: ./scripts/smoke_desktop.ps1 -DistDir work/desktop-dist -ReportDir work/desktop-smoke -Version 1.1.0 -SourceCommit ${{ github.sha }}
+      - name: Stage verified runtime artifact
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path work/runtime-artifact | Out-Null
+          Copy-Item -LiteralPath work/desktop-dist/UI_Center_v1.1.0_Windows_x64_Portable.zip,work/desktop-dist/UI_Center_v1.1.0_Windows_x64.exe,work/desktop-dist/build-desktop-report.json,work/desktop-dist/verify-desktop-report.json -Destination work/runtime-artifact
+          Copy-Item -Path work/desktop-smoke/smoke-*.json -Destination work/runtime-artifact
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-runtime-v1.1.0-${{ github.sha }}
+          path: work/runtime-artifact/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
 
   android:
     runs-on: ubuntu-latest
@@ -39,8 +63,8 @@ jobs:
           java -cp work/ci-state TaskStateTest
 
   release:
-    name: Publish approved v1.0.0 source release
-    if: github.repository == 'Zerozero05/UI_Center' && github.ref == 'refs/tags/v1.0.0'
+    name: Publish approved v1.1.0 runtime and source release
+    if: github.repository == 'Zerozero05/UI_Center' && github.ref == 'refs/tags/v1.1.0'
     needs: [desktop, android]
     runs-on: ubuntu-latest
     permissions:
@@ -49,41 +73,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Package and verify the approved source snapshot
-        shell: bash
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows-runtime-v1.1.0-${{ github.sha }}
+          path: work/release
+      - name: Prepare source snapshot, checksums and notes
         run: |
-          set -euo pipefail
-          mkdir -p work/release
-          git archive --format=zip --prefix=UI_Center/ --output=work/release/UI_Center_v1.0.0_Source.zip HEAD
-          python3 - <<'PY'
-          import hashlib
-          import pathlib
-          import subprocess
-          import zipfile
-          package = pathlib.Path('work/release/UI_Center_v1.0.0_Source.zip')
-          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().rstrip('\0').split('\0')
-          with zipfile.ZipFile(package) as archive:
-              names = {item.filename for item in archive.infolist() if not item.is_dir()}
-              assert names == {'UI_Center/' + name for name in tracked}
-              for name in tracked:
-                  assert archive.read('UI_Center/' + name) == subprocess.check_output(['git', 'show', 'HEAD:' + name]), name
-          digest = hashlib.sha256(package.read_bytes()).hexdigest()
-          package.with_name('SHA256SUMS').write_text(digest + '  ' + package.name + '\n', encoding='utf-8')
-          print(f'PASS: source archive matches all {len(tracked)} tracked files; SHA256={digest}')
-          PY
-          cp docs/releases/v1.0.0.md work/release-notes.md
-          printf '\n源码提交：`%s`。本次检查：[GitHub Actions](https://github.com/%s/actions/runs/%s)。\n' "$(git rev-parse HEAD)" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> work/release-notes.md
-      - name: Create draft, verify uploaded bytes and publish
-        shell: bash
+          python3 -B scripts/prepare_desktop_release.py --directory work/release
+          printf '\n本次检查：[GitHub Actions](https://github.com/%s/actions/runs/%s)。\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> work/release/release-notes.md
+      - name: Create draft, verify public assets before publishing
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           gh --version
-          gh release create v1.0.0 work/release/UI_Center_v1.0.0_Source.zip work/release/SHA256SUMS --verify-tag --draft --title v1.0.0 --notes-file work/release-notes.md
+          gh release create v1.1.0 work/release/UI_Center_v1.1.0_Windows_x64_Portable.zip work/release/UI_Center_v1.1.0_Windows_x64.exe work/release/UI_Center_v1.1.0_Source.zip work/release/SHA256SUMS --verify-tag --draft --title v1.1.0 --notes-file work/release/release-notes.md
           mkdir -p work/release-download
-          gh release download v1.0.0 --dir work/release-download
+          gh release download v1.1.0 --dir work/release-download
           cmp work/release/SHA256SUMS work/release-download/SHA256SUMS
           (cd work/release-download && sha256sum --check SHA256SUMS)
-          gh release edit v1.0.0 --draft=false --latest
+          gh release edit v1.1.0 --draft=false --latest
