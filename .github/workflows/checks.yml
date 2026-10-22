@@ -82,17 +82,33 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import pathlib, re, subprocess
+          import json, pathlib, re, subprocess
+          if subprocess.check_output(['git', 'cat-file', '-t', 'refs/tags/v1.1.0'], text=True).strip() != 'tag':
+              raise SystemExit('An annotated release tag is required')
           note = subprocess.check_output(['git', 'for-each-ref', '--format=%(contents)', 'refs/tags/v1.1.0'], text=True)
           matches = re.findall(r'^Candidate-Run: ([1-9][0-9]*)$', note, re.M)
           if len(matches) != 1:
               raise SystemExit('The approved annotated tag must identify one reviewed candidate run')
           pathlib.Path('candidate-run.txt').write_text(matches[0], encoding='utf-8')
+          approved = {}
+          for field, filename in [('Portable-SHA256', 'UI_Center_v1.1.0_Windows_x64_Portable.zip'),
+                                  ('Single-SHA256', 'UI_Center_v1.1.0_Windows_x64.exe')]:
+              values = re.findall(r'^' + field + r': ([0-9a-f]{64})$', note, re.M)
+              if len(values) != 1:
+                  raise SystemExit('The tag must bind one reviewed hash for ' + field)
+              approved[filename] = values[0]
+          pathlib.Path('candidate-approval.json').write_text(json.dumps(approved), encoding='utf-8')
           PY
           CANDIDATE_RUN=$(cat candidate-run.txt)
           test "$(gh api "repos/$GH_REPO/actions/runs/$CANDIDATE_RUN" --jq .head_sha)" = "$(git rev-parse HEAD)"
           test "$(gh api "repos/$GH_REPO/actions/runs/$CANDIDATE_RUN" --jq .conclusion)" = success
           gh run download "$CANDIDATE_RUN" --name "windows-runtime-v1.1.0-$(git rev-parse HEAD)" --dir work/release
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          for name, digest in json.loads(pathlib.Path('candidate-approval.json').read_text()).items():
+              if hashlib.sha256((pathlib.Path('work/release') / name).read_bytes()).hexdigest() != digest:
+                  raise SystemExit('Downloaded candidate differs from the reviewed tag hash: ' + name)
+          PY
       - name: Prepare source snapshot, checksums and notes
         run: |
           python3 -B scripts/prepare_desktop_release.py --directory work/release

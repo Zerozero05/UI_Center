@@ -75,7 +75,9 @@ and [entry-point-relative resources](https://pyinstaller.org/en/stable/runtime-i
 These are tool/API references; no upstream packaging implementation was copied.
 
 For a reviewed v1.1.0 release, the annotated tag contains one `Candidate-Run: N`
-line naming the successful same-commit CI run. The release job checks that run's
+line naming the successful same-commit CI run, and `Portable-SHA256:` /
+`Single-SHA256:` lines binding the exact reviewed binary hashes. The release job
+requires an actual annotated tag, checks the downloaded bytes and that run's
 commit and conclusion, downloads its exact artifact, and binds integrity/smoke
 evidence to the bytes before publishing. A fresh tag build is a regression gate,
 not permission to substitute different binaries for the reviewed candidate.
