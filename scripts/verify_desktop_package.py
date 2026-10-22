@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packaging"))
 from desktop_common import (PYINSTALLER_VERSION, asset_filenames, asset_names,
                             check_windows_executable, git_bytes, native_notices, safe_member, sha256,
-                            source_commit, version_value)
+                            source_commit, version_value, windows_system_runtime)
 
 
 def verify_resources(read, prefix, available, commit, version):
@@ -60,6 +60,8 @@ def verify_resources(read, prefix, available, commit, version):
     if inventory.get("license_files") != manifest["files"]:
         raise ValueError("The binary and license manifests disagree")
     for entry in inventory["binaries"]:
+        if windows_system_runtime(entry["path"]):
+            raise ValueError("Package incorrectly bundles a Windows-provided UCRT/API-set library")
         provider, required = native_notices(entry["path"])
         if entry.get("provider") != provider or entry.get("distribution_notices") != required:
             raise ValueError("Incorrect native dependency license mapping: " + entry["path"])

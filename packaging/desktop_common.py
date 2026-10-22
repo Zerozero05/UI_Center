@@ -20,6 +20,11 @@ EXAMPLE_DATA = (
     "examples/tkinter/README.md", "examples/android/README.md",
 )
 ICON_DATA = "apps/desktop/app.ico"
+MICROSOFT_VC14_RUNTIME = {
+    "vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll", "msvcp140_1.dll",
+    "msvcp140_2.dll", "msvcp140_atomic_wait.dll", "msvcp140_codecvt_ids.dll",
+    "concrt140.dll", "vccorlib140.dll",
+}
 
 
 def sha256(data):
@@ -59,7 +64,8 @@ def git_bytes(commit, name, root=ROOT):
 
 def check_inputs(version, root=ROOT):
     version_value(version, root)
-    required = ["apps/desktop/main.py", "components/tkinter/ui_center/__init__.py", *asset_names(root)]
+    required = ["apps/desktop/main.py", "components/tkinter/ui_center/__init__.py",
+                "packaging/desktop.spec", *asset_names(root)]
     missing = [name for name in required if not (root / name).is_file()]
     if missing:
         raise ValueError("Missing packaging inputs: " + ", ".join(missing))
@@ -91,7 +97,7 @@ def check_committed_sources(commit, root=ROOT):
         relevant.update(path.relative_to(root).as_posix() for path in (root / folder).rglob("*" + suffix))
     relevant.update(("scripts/build_desktop.py", "scripts/verify_desktop_package.py",
                      "requirements-desktop-build.txt", "examples/tkinter/demo.py",
-                     "packaging/README.md", "packaging/licenses/sources.json"))
+                     "packaging/README.md", "packaging/desktop.spec", "packaging/licenses/sources.json"))
     relevant.update("packaging/licenses/" + name for name in license_snapshots(root))
     for name in sorted(relevant):
         if name not in tracked or (root / name).read_bytes() != git_bytes(commit, name, root):
@@ -111,7 +117,7 @@ def native_notices(name):
     if name.startswith(("tcl", "tk")) or name == "_tkinter.pyd":
         notices.append("TclTk-distribution-LICENSE.txt")
         provider = "Tcl/Tk and CPython's _tkinter binding"
-    elif name.startswith(("vcruntime", "msvcp", "ucrtbase", "api-ms-win-crt", "concrt")):
+    elif name in MICROSOFT_VC14_RUNTIME:
         provider = "Microsoft runtime; CPython Windows redistributable conditions"
     elif name.startswith(("libcrypto", "libssl")) or name in {"_hashlib.pyd", "_ssl.pyd"}:
         notices.append("OpenSSL-3-LICENSE.txt")
@@ -129,6 +135,13 @@ def native_notices(name):
         notices.append("liblzma-COPYING.txt")
         provider = "XZ Utils liblzma and CPython's _lzma binding"
     return provider, notices
+
+
+def windows_system_runtime(name):
+    """UCRT/API-set compatibility copies are supplied by supported Windows 11."""
+    name = Path(name).name.lower()
+    return name == "ucrtbase.dll" or bool(re.fullmatch(
+        r"api-ms-win-(?:core|crt)-[a-z0-9-]+-l\d+-\d+-\d+\.dll", name))
 
 
 def safe_member(name):

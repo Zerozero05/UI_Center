@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packaging"))
 from desktop_common import (PYINSTALLER_VERSION, asset_filenames, check_committed_sources,
                             check_inputs, license_snapshots, native_notices, sha256,
-                            source_commit, version_value)
+                            source_commit, version_value, windows_system_runtime)
 
 
 def write_json(path, value):
@@ -87,6 +87,8 @@ def binary_inventory(bundle, licenses, notices):
                            for path in parent.glob("*") if path.suffix.lower() in {".dll", ".pyd"}}
     for path in sorted((bundle / "_internal").rglob("*")):
         if path.is_file() and path.suffix.lower() in {".dll", ".pyd"}:
+            if windows_system_runtime(path.name):
+                raise ValueError("Windows-provided UCRT/API-set library unexpectedly entered the bundle: " + path.name)
             provider, distribution_notices = native_notices(path.name)
             if path.name.lower() not in distribution_native and not provider.startswith("Microsoft runtime"):
                 raise ValueError("A native library is outside the supported CPython distribution: " + path.name)
@@ -159,18 +161,17 @@ def main():
     windows_version_file(version_file, version)
     build_environment = os.environ.copy()
     build_environment["PYINSTALLER_CONFIG_DIR"] = str(work / "pyinstaller-config")
-    common = [sys.executable, "-m", "PyInstaller", "--name", "UI_Center", "--windowed", "--noupx",
-              "--paths", str(ROOT), "--paths", str(ROOT / "apps/desktop"),
-              "--paths", str(ROOT / "components/tkinter"), "--hidden-import", "examples.tkinter.demo",
-              "--hidden-import", "ui_center", "--add-data", str(assets) + ":assets",
-              "--version-file", str(version_file), "--icon", str(ROOT / "apps/desktop/app.ico")]
+    build_environment.update({"UI_CENTER_BUILD_ROOT": str(ROOT), "UI_CENTER_BUILD_ASSETS": str(assets),
+                              "UI_CENTER_WINDOWS_VERSION_FILE": str(version_file)})
+    policies = {}
     def run_build(mode):
         destination = work / (mode + "-dist")
-        spec = work / (mode + "-spec")
-        spec.mkdir()
-        subprocess.run(common + ["--" + mode, "--distpath", str(destination), "--workpath",
-                       str(work / (mode + "-work")), "--specpath", str(spec), str(ROOT / "apps/desktop/main.py")],
+        policy_report = work / (mode + "-native-policy.json")
+        build_environment.update({"UI_CENTER_BUILD_MODE": mode, "UI_CENTER_NATIVE_POLICY_REPORT": str(policy_report)})
+        subprocess.run([sys.executable, "-m", "PyInstaller", "--distpath", str(destination), "--workpath",
+                       str(work / (mode + "-work")), str(ROOT / "packaging/desktop.spec")],
                        cwd=ROOT, env=build_environment, check=True)
+        policies[mode] = json.loads(policy_report.read_text(encoding="utf-8"))
         return destination
     portable = run_build("onedir") / "UI_Center"
     inventory = binary_inventory(portable, licenses, notices)
@@ -178,12 +179,15 @@ def main():
     for path in licenses.iterdir():
         shutil.copyfile(path, portable / "_internal/assets/licenses" / path.name)
     single = run_build("onefile") / "UI_Center.exe"
+    if policies["onedir"] != policies["onefile"]:
+        raise ValueError("Portable and single-file native-library policies differ")
     shutil.copyfile(single, output / single_name)
     with zipfile.ZipFile(output / portable_name, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(portable.rglob("*")):
             if path.is_file():
                 archive.write(path, path.relative_to(portable).as_posix())
     report = {"status": "built_not_runtime_tested", **build_info, "licenses": notices,
+              "windows_native_policy": policies["onedir"],
               "artifacts": [{"name": name, "bytes": (output / name).stat().st_size,
                              "sha256": sha256((output / name).read_bytes())}
                             for name in (portable_name, single_name)]}

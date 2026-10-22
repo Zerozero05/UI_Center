@@ -4,6 +4,7 @@ The app uses Python/Tk and standard-library modules. `requirements-desktop-build
 pins **PyInstaller 6.22.3 as a build tool**; the build script never installs it.
 Build on Windows x64 with the complete CPython Windows distribution (including
 its Python, Windows runtime, and bundled Tcl/Tk license notices).
+The supported runtime target is **Windows 11 x64**.
 
 ```console
 python scripts/build_desktop.py --check-only --version 1.1.0
@@ -51,6 +52,18 @@ The build does not modify CPython or these native libraries.
 
 Outputs also include `build-desktop-report.json`. Build intermediates are kept in
 a uniquely named directory under `--output-dir`; no cleanup is performed.
+The fixed [desktop.spec](desktop.spec) removes only `ucrtbase.dll` and versioned
+`api-ms-win-core-*-lN-N-N.dll` / `api-ms-win-crt-*-lN-N-N.dll` compatibility copies
+from the analyzed binary list before either bundle is assembled. Windows 11
+supplies these components. The actual removed names are recorded in
+`build-desktop-report.json` under `windows_native_policy.excluded_system_dlls`;
+both build forms must report the same policy. VC runtime DLLs stay bundled and
+unknown native libraries still fail the distribution/license check.
+
+This follows [PyInstaller 6.22.3's explicit legacy UCRT collection policy](https://github.com/pyinstaller/pyinstaller/blob/v6.22.3/PyInstaller/depend/dylib.py#L130-L139)
+and [Microsoft's Windows 10/11 UCRT deployment guidance](https://learn.microsoft.com/en-us/cpp/windows/universal-crt-deployment?view=msvc-170#local-deployment).
+Microsoft also documents that [API-set names are operating-system contracts](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-apisets),
+resolved by the loader, rather than application libraries to supply.
 The verifier checks both archives' metadata/resources against Git and checks the
 actual native-file inventory, Windows x64/GUI PE headers, license presence/hashes,
 and forbidden private/build paths. It does **not** start the app or claim GUI
