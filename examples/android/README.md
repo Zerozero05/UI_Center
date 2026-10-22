@@ -26,6 +26,8 @@ gradle --offline assembleDebug lintDebug assembleDebugAndroidTest
 
 ## 设备验证
 
+本节保留为后续验收步骤，不阻塞 Windows 11 优先的首版交付；当前设备运行未测，构建通过不能替代实际运行验证。
+
 只在已授权设备上安装此独立 ID 的示例和测试包：
 
 ```text
