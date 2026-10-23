@@ -48,7 +48,7 @@ def run_smoke(app, report_path):
         if app.store.frozen and sandbox:
             sandbox_root = Path(sandbox).resolve()
             check("default_probe_is_inside_explicit_sandbox", program != sandbox_root
-                  and program.is_relative_to(sandbox_root) and default_path.is_relative_to(sandbox_root))
+                  and program.is_relative_to(sandbox_root) and default_path.resolve().is_relative_to(sandbox_root))
             profile = Preferences()
             report["default_profile_before"] = profile.load()
             probe_values = {"theme": "sage", "font_scale": 125, "motion": "reduced"}
