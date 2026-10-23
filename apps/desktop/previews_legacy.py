@@ -68,7 +68,7 @@ class ThemePreview(PreviewView):
 
 
 class ActionsPreview(PreviewView):
-    def __init__(self, master, *, palette, reduced_motion=False):
+    def __init__(self, master, *, palette, reduced_motion=False, spacing=None):
         super().__init__(master, palette=palette, reduced_motion=reduced_motion)
         self.primary_text = tk.StringVar(self, value="开始任务")
         self.amount = tk.StringVar(self, value="8")
@@ -84,7 +84,8 @@ class ActionsPreview(PreviewView):
                      width=8, state="readonly").grid(row=1, column=1, sticky="w", pady=(8, 0))
         self.stage.columnconfigure(0, weight=1)
         self.actions = self.register(ActionBar(self.stage, on_primary=self.start,
-                                               on_cancel=self.cancel, on_secondary=self.reset))
+                                               on_cancel=self.cancel, on_secondary=self.reset,
+                                               spacing=spacing))
         self.actions.grid(row=0, column=0, sticky="ew", pady=(20, 16))
         self.detail_label = ttk.Label(self.stage, textvariable=self.detail, wraplength=440)
         self.detail_label.grid(row=1, column=0, sticky="ew")
@@ -147,7 +148,7 @@ class ActionsPreview(PreviewView):
 
 
 class TaskPreview(PreviewView):
-    def __init__(self, master, *, palette, reduced_motion=False):
+    def __init__(self, master, *, palette, reduced_motion=False, spacing=None):
         super().__init__(master, palette=palette, reduced_motion=reduced_motion)
         self.amount = tk.StringVar(self, value="8")
         self.outcome = tk.StringVar(self, value="成功")
@@ -164,12 +165,13 @@ class TaskPreview(PreviewView):
         ttk.Combobox(parameters, textvariable=self.outcome, values=("成功", "失败"),
                      state="readonly", width=7).grid(row=0, column=3, padx=6)
         self.actions = self.register(ActionBar(self.controls, on_primary=self.start,
-                                               on_cancel=self.cancel, on_secondary=self.reset))
+                                               on_cancel=self.cancel, on_secondary=self.reset,
+                                               spacing=spacing))
         self.actions.grid(row=1, column=0, sticky="ew", pady=(8, 0))
         self.controls.columnconfigure(0, weight=1)
         self.stage.columnconfigure(0, weight=1)
         self.stage.rowconfigure(0, weight=1)
-        self.panel = self.register(TaskPanel(self.stage))
+        self.panel = self.register(TaskPanel(self.stage, spacing=spacing))
         self.panel.grid(row=0, column=0, sticky="nsew")
         self.message.set("虚构任务支持完成、取消和失败；主题切换保留进度、参数与结果。")
 
@@ -238,9 +240,12 @@ class TaskPreview(PreviewView):
         return example_code("from ui_center import TaskPanel", body)
 
 
-def create_preview(key, master, *, palette, reduced_motion=False):
+def create_preview(key, master, *, palette, reduced_motion=False, spacing=None):
     classes = {"legacy-theme": ThemePreview, "legacy-actions": ActionsPreview,
                "legacy-task": TaskPreview}
     if key not in classes:
         raise ValueError("Unknown legacy preview: " + key)
-    return classes[key](master, palette=palette, reduced_motion=reduced_motion)
+    options = {"palette": palette, "reduced_motion": reduced_motion}
+    if key != "legacy-theme":
+        options["spacing"] = spacing
+    return classes[key](master, **options)

@@ -10,6 +10,7 @@ import time
 import tkinter as tk
 from tkinter import font as tkfont, ttk
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -160,6 +161,19 @@ class WorkbenchIntegrationTests(unittest.TestCase):
         while time.monotonic() < deadline:
             self.root.update()
             time.sleep(.002)
+
+    def test_legacy_previews_use_loaded_tokens_without_a_source_layout_lookup(self):
+        with patch("ui_center.widgets.load_tokens", side_effect=FileNotFoundError("no source layout")):
+            for key in ("tk-theme", "tk-actions", "tk-task"):
+                with self.subTest(key=key):
+                    self.app.select_entry(key)
+                    self.update()
+                    self.assertTrue(self.app.live_view.winfo_exists())
+                    preview = self.app.open_preview()
+                    self.update()
+                    self.assertTrue(preview.root.winfo_exists())
+                    preview.close()
+                    self.update()
 
     def test_hidden_windows_do_not_resume_mock_progress_from_page_or_map_events(self):
         self.app.select_entry("progress-bar")

@@ -78,7 +78,7 @@ class PreviewWindow:
         self.surface = PreviewSurface(self.root, on_reset=lambda: self.view.reset())
         self.surface.pack(fill="both", expand=True)
         self.view = create_preview(entry.preview_id, self.surface.host, palette=app.palette,
-                                   reduced_motion=app.motion_reduced)
+                                   reduced_motion=app.motion_reduced, spacing=app.gap)
         self.view.grid(row=0, column=0, sticky="nsew")
         self.surface.apply_palette(app.palette)
         self.root.protocol("WM_DELETE_WINDOW", self.close)
@@ -389,7 +389,8 @@ class BrowserApp:
         self.description.show(body_for(self.store, entry), resource=entry.resource)
         if entry.preview:
             self.live_view = create_preview(entry.preview_id, self.preview_surface.host,
-                                            palette=self.palette, reduced_motion=self.motion_reduced)
+                                            palette=self.palette, reduced_motion=self.motion_reduced,
+                                            spacing=self.gap)
             self.live_view.grid(row=0, column=0, sticky="nsew")
             self._bind_shortcuts(self.live_view)
             self.preview_surface.canvas.yview_moveto(0)
