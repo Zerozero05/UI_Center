@@ -1,6 +1,6 @@
 # Windows 组件与规范工作台
 
-工作台用于查找组件、操作真实预览，再把用法与来源带入目标项目。v1.2.1提供18个用 Python 标准库 Tk/ttk/Canvas 编写的组件，继续保留原主题、ActionBar 和 TaskPanel 入口，并修正保存位置。Windows运行包自带Python/Tcl/Tk，无需安装开发环境；当前正式状态见[发行说明](releases/v1.2.1.md)。
+工作台用于查找组件、操作真实预览，再把用法与来源带入目标项目。v1.2.2提供18个用 Python 标准库 Tk/ttk/Canvas 编写的组件，继续保留原主题、ActionBar 和 TaskPanel 入口，沿用EXE旁保存位置，改进骨架/扫光效果及分类内筛选。Windows运行包自带Python/Tcl/Tk，无需安装开发环境；当前正式状态见[发行说明](releases/v1.2.2.md)。
 
 ## 下载与启动
 
@@ -38,7 +38,7 @@
 
 动画可选“跟随系统”“正常动画”“减少动画”。减少动画取消装饰计时器，保留静态等待提示、忙碌状态和真实百分比；它不将真实任务标记为完成。离开实时预览页、最小化或关闭预览会暂停/释放对应动画；示例的模拟进度在隐藏期间暂停，回到预览后继续。组件接入目标应用时，由调用方同步自己的页面可见性与动画偏好。
 
-v1.2.1中，仅以下3项外观偏好保存到实际EXE旁的`data/preferences.json`；本机约定位置为`D:\03_github_projects\UI_Center\data\preferences.json`。源码调试使用仓库内`work/data/preferences.json`，测试或调用方显式指定的路径优先。旧v1.2.0包仍使用旧同级路径，升级需同时迁移配置和更换EXE。
+自v1.2.1起，仅以下3项外观偏好保存到实际EXE旁的`data/preferences.json`；本机约定位置为`D:\03_github_projects\UI_Center\data\preferences.json`。源码调试使用仓库内`work/data/preferences.json`，测试或调用方显式指定的路径优先。旧v1.2.0包仍使用旧同级路径，升级需同时迁移配置和更换EXE。
 
 | 字段 | 可选值 | 默认值 |
 | --- | --- | --- |
