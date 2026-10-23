@@ -216,8 +216,13 @@ class BrowserApp:
         scroll.pack(side="right", fill="y")
         self.entries.pack(fill="both", expand=True)
         self.entries.bind("<<TreeviewSelect>>", self._selection_changed)
-        self.title = ttk.Label(self.content, style="UIC.Heading.TLabel", wraplength=700)
+        titlebar = ttk.Frame(self.content)
+        titlebar.grid(row=0, column=0, sticky="ew")
+        titlebar.columnconfigure(0, weight=1)
+        self.title = ttk.Label(titlebar, style="UIC.Heading.TLabel", wraplength=700)
         self.title.grid(row=0, column=0, sticky="ew")
+        self.platform_badge = ttk.Label(titlebar, style="UIC.Muted.TLabel")
+        self.platform_badge.grid(row=0, column=1, sticky="e", padx=(8, 0))
         self.boundary = ttk.Label(self.content, style="UIC.Muted.TLabel", wraplength=700)
         self.boundary.grid(row=1, column=0, sticky="ew", pady=(2, 4))
         self.summary = ttk.Label(self.content, wraplength=700)
@@ -249,9 +254,12 @@ class BrowserApp:
         ttk.Label(footer, text="v" + self.store.version, style="UIC.Muted.TLabel").grid(row=0, column=1, sticky="e")
         self.status_label.bind("<Configure>", lambda e: self.status_label.configure(wraplength=max(180, e.width)))
 
-    def _resize_text(self, event):
-        for label in (self.title, self.boundary, self.summary):
-            label.configure(wraplength=max(180, event.width - self.gap["md"]))
+    def _resize_text(self, event=None):
+        width = max(180, (event.width if event else self.content.winfo_width()) - self.gap["md"])
+        badge_width = self.platform_badge.winfo_reqwidth() + 8 if self.current and self.current.preview else 0
+        self.title.configure(wraplength=max(140, width - badge_width))
+        for label in (self.boundary, self.summary):
+            label.configure(wraplength=width)
 
     def _bind_shortcuts(self, widget):
         if not getattr(widget, "_uic_shortcuts_bound", False):
@@ -353,6 +361,8 @@ class BrowserApp:
         self.boundary.configure(text="调整关键词、内容分类或平台筛选。")
         self.summary.configure(text="可试试：Spinner、骨架、弹窗、Tab、焦点。")
         self.summary.grid()
+        self.platform_badge.grid_remove()
+        self.boundary.grid()
         self.description.show("搜索包含中文名称、英文别名、摘要和场景。", markdown=False)
         for button in (self.copy_ai_button, self.copy_usage_button, self.preview_button, self.source_button):
             button.state(["disabled"])
@@ -368,8 +378,14 @@ class BrowserApp:
         self.summary.configure(text=entry.summary)
         if entry.preview:
             self.summary.grid_remove()
+            self.boundary.grid_remove()
+            self.platform_badge.configure(text="Tkinter · 虚构数据")
+            self.platform_badge.grid()
         else:
             self.summary.grid()
+            self.boundary.grid()
+            self.platform_badge.grid_remove()
+        self._resize_text()
         self.description.show(body_for(self.store, entry), resource=entry.resource)
         if entry.preview:
             self.live_view = create_preview(entry.preview_id, self.preview_surface.host,
@@ -496,6 +512,7 @@ class BrowserApp:
             style.configure("TNotebook.Tab", background=palette["background"], foreground=palette["muted"], padding=(8, 6))
             style.map("TNotebook.Tab", background=[("selected", palette["surface"]), ("active", palette["hover"])],
                       foreground=[("selected", palette["foreground"])])
+            self._resize_text()
             if save:
                 self.preferences.save({"theme": self.theme.get(), "font_scale": self.font_scale.get(), "motion": self.motion.get()})
                 self.status.set(self.preferences.notice or "界面偏好已保存；当前预览参数保持不变。")

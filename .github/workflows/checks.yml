@@ -14,7 +14,7 @@ jobs:
       - name: Check documentation and design tokens
         run: python -B scripts/verify_repository.py
       - name: Exercise original widgets and desktop browser
-        run: python -B -m unittest discover -s tests -p 'test_*.py' -v
+        run: python -X utf8 -B -m unittest discover -s tests -p 'test_*.py' -v
       - name: Install the isolated build requirements
         run: |
           python -m venv work/build-env
