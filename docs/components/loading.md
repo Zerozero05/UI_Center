@@ -98,13 +98,15 @@ root.mainloop()
 
 ## skeleton
 
-**用途：** 内容尚未到达但布局已知时，提前显示列表或卡片的大致结构，减少布局跳动。
+**用途：** 内容尚未到达但布局已知时，提前显示列表或卡片的大致结构，减少布局跳动。正常动画下可选平滑脉动，让整组占位温和改变明暗；它与移动高光的扫光骨架共用布局。
 
 **不适用条件：** 内容可能永久为空、权限拒绝或已失败时应显示真实的空/错误状态。占位块不应替代已可见的用户数据。
 
 **参数：** `Skeleton(master, *, palette, variant='list', rows=3, width=360, animate=True, ...)`。`variant` 为 `list` / `card`；`rows` 为1–10（列表行数）；`set_variant()` 切换布局；`set_animation(False)` 关闭装饰脉动而保留占位；`reduced_motion=True` 同样保留静态占位。`stop()` 停止装饰，调用者在内容到达后自行替换布局。
 
 **接入：** 用与最终内容相同的容器和布局位置放置占位。业务完成时停止并 `grid_remove()` / `pack_forget()`，再呈现真实内容。
+
+**工作台预览：** “布局”显示列表／卡片，“脉动效果”显示开启／关闭；代码仍使用 `list/card` 与 `animate`。顶部启用减少动画时局部效果选项禁用，原选择保留，并说明当前为静态占位；选择正常动画后，仍处于运行状态的预览才恢复脉动。停止预览不代表业务完成或取消。
 
 **依赖：** Python 标准库 Tk/ttk/Canvas 与项目主题。
 
@@ -127,15 +129,17 @@ root.mainloop()
 
 ## shimmer
 
-**用途：** 在 skeleton 占位上添加可关闭的移动高光，帮助辨认加载状态；`shummer` 是目录搜索别名，Python 类名为 `Shimmer`。
+**用途：** 在骨架占位形状内添加可关闭的渐变移动高光，底色保持稳定、间隔空白保持不变；`shummer` 是目录搜索别名，Python类名为 `Shimmer`。它与骨架屏的区别是移动高光，而非另一份内容布局。
 
 **不适用条件：** 用户选择减少动画、长时间等待、需要集中阅读或高光造成干扰时关闭。不能将高光速度解释为业务速度。
 
-**参数：** `Shimmer(master, *, palette, enabled=True, variant='list', rows=3, width=360, ...)`。布局参数与 Skeleton 相同；`set_enabled(False)` 同时移除高光和脉动、取消装饰计时器、保留占位；`set_reduced_motion(True)` 无须改变用户的 `enabled` 选择。
+**参数：** `Shimmer(master, *, palette, enabled=True, variant='list', rows=3, width=360, ...)`。布局参数与Skeleton相同；`set_enabled(False)` 移除高光、取消装饰计时器并保留占位；`set_reduced_motion(True)` 无须改变用户的 `enabled` 选择。
 
 **接入：** 显式传入用户的动画偏好；离开页面调用 `set_visible(False)`。恢复页面后仍由真实加载状态决定是否继续。
 
-**依赖：** Python 标准库 Tk/ttk/Canvas；`stipple` 高光的细节随 Tk/显示缩放而异，不使用图片资源。
+**工作台预览：** “扫光效果”使用开启／关闭文字选项。减少动画时与骨架屏一样显示静态占位，这是预期降级；状态说明会给出原因。关闭局部效果或停止预览后也保留占位，状态文字分别说明，不把等待动画当作真实业务进度。
+
+**依赖：** Python标准库Tk/ttk/Canvas及已有主题颜色，不使用图片或额外运行库。
 
 <!-- example:shimmer -->
 ```python
@@ -151,9 +155,15 @@ palette = apply_theme(root, tokens_path=Path(__file__).parent / 'tokens' / 'desi
 placeholder = Shimmer(root, palette=palette, variant='card', enabled=True)
 placeholder.pack(fill='x', padx=24, pady=24)
 placeholder.start()
-enabled = tk.BooleanVar(root, value=True)
-ttk.Checkbutton(root, text='装饰动画', variable=enabled,
-                command=lambda: placeholder.set_enabled(enabled.get())).pack(pady=12)
+controls = ttk.Frame(root)
+controls.pack(pady=12)
+ttk.Label(controls, text='扫光效果').pack(side='left', padx=(0, 8))
+effect = tk.StringVar(root, value='开启')
+picker = ttk.Combobox(controls, textvariable=effect,
+                     values=('开启', '关闭'), state='readonly', width=6)
+picker.pack(side='left')
+picker.bind('<<ComboboxSelected>>',
+            lambda event: placeholder.set_enabled(effect.get() == '开启'))
 root.mainloop()
 ```
 

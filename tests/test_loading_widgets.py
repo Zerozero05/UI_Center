@@ -162,7 +162,15 @@ class LoadingBehaviorTests(unittest.TestCase):
             widget.start()
             self.root.update()
             self.assertIsNotNone(widget._after_id)
-            self.assertEqual(len(widget.canvas.find_all()), 9 if cls is Skeleton else 10)
+            placeholders = widget.canvas.find_withtag("placeholder")
+            self.assertEqual(len(placeholders), 9)
+            self.assertEqual([widget.canvas.type(item) for item in placeholders],
+                             ["oval", "rectangle", "rectangle"] * 3)
+            if cls is Shimmer:
+                widget._phase = 12
+                widget._draw()
+                self.assertTrue(widget.canvas.find_withtag("shimmer"),
+                                "A running sweep must reach the content placeholders")
             widget.set_variant("card")
             self.assertEqual(widget.variant, "card")
             if cls is Shimmer:
@@ -172,6 +180,10 @@ class LoadingBehaviorTests(unittest.TestCase):
             self.assertIsNone(widget._after_id)
             self.assertTrue(widget.running)
             self.assertEqual(len(widget.canvas.find_all()), 3)
+            self.assertEqual(len(widget.canvas.find_withtag("placeholder")), 3)
+            self.assertEqual(widget.canvas.find_withtag("shimmer"), ())
+            self.assertEqual({widget.canvas.itemcget(item, "fill")
+                              for item in widget.canvas.find_all()}, {self.palette["hover"]})
             widget.destroy()
 
     def test_loading_button_uses_real_button_and_guards_reentry(self):

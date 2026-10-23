@@ -18,6 +18,11 @@ def _progress(value, maximum):
     return value, maximum
 
 
+def _mix_rgb(first, second, amount):
+    return "#" + "".join(f"{round((a + (b - a) * amount) / 257):02x}"
+                         for a, b in zip(first, second))
+
+
 class _AnimatedFrame(ttk.Frame):
     """One timer per component; mapping and reduced motion suspend decoration."""
 
@@ -76,7 +81,9 @@ class _AnimatedFrame(ttk.Frame):
         self._after_id = None
         if self._disposed:
             return
-        self._phase = (self._phase + 1) % 120
+        # A common multiple of the 48-step pulse and 40-step sweep keeps both
+        # continuous when the bounded counter wraps.
+        self._phase = (self._phase + 1) % 240
         self._draw()
         self._sync_animation()
 
@@ -271,24 +278,42 @@ class Skeleton(_AnimatedFrame):
     def _animate_enabled(self):
         return self.animate
 
-    def _draw(self):
-        p = self.palette
+    def _canvas_width(self):
         width = self.canvas.winfo_width()
         if width <= 1:
             width = int(self.canvas.cget("width"))
+        return width
+
+    def _placeholder_shapes(self, width):
+        if self.variant == "card":
+            return [("rectangle", (4, 4, width - 4, 100)),
+                    ("rectangle", (4, 114, width * 0.78, 128)),
+                    ("rectangle", (4, 142, width * 0.55, 154))]
+        shapes = []
+        for row in range(self.rows):
+            y = row * 48 + 4
+            shapes.extend((("oval", (4, y, 36, y + 32)),
+                           ("rectangle", (48, y + 2, width - 4, y + 13)),
+                           ("rectangle", (48, y + 22, width * 0.7, y + 31))))
+        return shapes
+
+    def _placeholder_color(self):
+        p = self.palette
+        if not (self.running and self.animate and not self.reduced_motion):
+            return p["hover"]
+        # One gentle cosine cycle takes 48 ticks, or 2.4s at the default 50ms.
+        strength = 0.14 * (1 - math.cos(2 * math.pi * self._phase / 48))
+        return _mix_rgb(self.winfo_rgb(p["hover"]), self.winfo_rgb(p["border"]), strength)
+
+    def _draw(self):
+        p = self.palette
+        width = self._canvas_width()
         self.canvas.configure(background=p["background"])
         self.canvas.delete("all")
-        color = p["border"] if self.running and self.animate and not self.reduced_motion and self._phase % 24 < 12 else p["hover"]
-        if self.variant == "card":
-            self.canvas.create_rectangle(4, 4, width - 4, 100, fill=color, outline="")
-            self.canvas.create_rectangle(4, 114, width * 0.78, 128, fill=color, outline="")
-            self.canvas.create_rectangle(4, 142, width * 0.55, 154, fill=color, outline="")
-        else:
-            for row in range(self.rows):
-                y = row * 48 + 4
-                self.canvas.create_oval(4, y, 36, y + 32, fill=color, outline="")
-                self.canvas.create_rectangle(48, y + 2, width - 4, y + 13, fill=color, outline="")
-                self.canvas.create_rectangle(48, y + 22, width * 0.7, y + 31, fill=color, outline="")
+        color = self._placeholder_color()
+        for index, (shape, bounds) in enumerate(self._placeholder_shapes(width)):
+            draw = self.canvas.create_oval if shape == "oval" else self.canvas.create_rectangle
+            draw(*bounds, fill=color, outline="", tags=("placeholder", f"shape-{index}"))
 
 
 class Shimmer(Skeleton):
@@ -302,17 +327,50 @@ class Shimmer(Skeleton):
         self.enabled = bool(enabled)
         self.set_animation(enabled)
 
+    def _animate_enabled(self):
+        return self.enabled and self.animate
+
+    def _placeholder_color(self):
+        return self.palette["hover"]
+
     def _draw(self):
         super()._draw()
-        if self.enabled and self.running and not self.reduced_motion:
-            width = self.canvas.winfo_width()
-            if width <= 1:
-                width = int(self.canvas.cget("width"))
-            x = (self._phase % 40) / 40 * (width + 60) - 60
-            height = int(self.canvas.cget("height"))
-            # A narrow translucent-like stripe uses the existing palette role.
-            self.canvas.create_rectangle(x, 2, x + 28, height - 2,
-                                         fill=self.palette["surface"], outline="", stipple="gray50")
+        if not (self.enabled and self.animate and self.running and not self.reduced_motion):
+            return
+        width = self._canvas_width()
+        half = max(24, min(80, width * 0.16))
+        center = (self._phase % 40) / 40 * (width + 2 * half) - half
+        base = self.winfo_rgb(self.palette["hover"])
+        surface = self.winfo_rgb(self.palette["surface"])
+        # The dark theme's surface is darker than its placeholder. Select the
+        # lighter existing role so the sweep remains a highlight in every theme.
+        highlight = surface if sum(surface) > sum(base) else self.winfo_rgb(self.palette["border"])
+        shapes = self._placeholder_shapes(width)
+        steps = 24
+        for step in range(steps):
+            left = center - half + 2 * half * step / steps
+            right = center - half + 2 * half * (step + 1) / steps
+            weight = 0.65 * math.sin(math.pi * (step + 0.5) / steps) ** 2
+            color = _mix_rgb(base, highlight, weight)
+            for index, (shape, bounds) in enumerate(shapes):
+                x0, y0, x1, y1 = bounds
+                a, b = max(left, x0), min(right, x1)
+                if b <= a:
+                    continue
+                tags = ("shimmer", f"clip-{index}")
+                if shape == "rectangle":
+                    self.canvas.create_rectangle(a, y0, b, y1, fill=color, outline="", tags=tags)
+                else:
+                    # Inscribed chords clip each gradient strip to the circle;
+                    # unlike a full-canvas stripe they cannot color empty space.
+                    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+                    rx, ry = (x1 - x0) / 2, (y1 - y0) / 2
+                    count = max(1, math.ceil((b - a) / 2))
+                    xs = [a + (b - a) * point / count for point in range(count + 1)]
+                    edge = lambda x: ry * math.sqrt(max(0, 1 - ((x - cx) / rx) ** 2))
+                    points = [(x, cy - edge(x)) for x in xs]
+                    points.extend((x, cy + edge(x)) for x in reversed(xs))
+                    self.canvas.create_polygon(points, fill=color, outline="", tags=tags)
 
 
 class LoadingButton(_AnimatedFrame):

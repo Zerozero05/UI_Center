@@ -5,11 +5,12 @@ from tkinter import ttk
 import webbrowser
 
 from ui_center import apply_theme, load_tokens
+from ui_center.feedback import EmptyState
 from ui_center.overlays import close_active_overlay
 from examples.tkinter.demo import DemoWindow
 
-from .catalog import (ENTRIES, PLATFORMS, SCENES, SECTIONS, adoption_note, body_for,
-                      filter_entries, section_for, source_notes, usage_for)
+from .catalog import (ENTRIES, PLATFORMS, SCENES, SECTIONS, adoption_note, available_platforms,
+                      available_scenes, body_for, filter_entries, section_for, source_notes, usage_for)
 from .preferences import Preferences, THEMES, MOTIONS, program_directory, reduced_motion
 from .previews import create_preview
 from .reader import DocumentReader
@@ -191,10 +192,12 @@ class BrowserApp:
                          state="readonly").grid(row=0, column=column * 2 + 1)
         search = ttk.Frame(shell)
         search.grid(row=2, column=0, sticky="ew", pady=(0, g["md"]))
-        ttk.Label(search, text="查找组件 / 规范").pack(side="left", padx=(0, g["sm"]))
+        self.search_label = ttk.Label(search)
+        self.search_label.pack(side="left", padx=(0, g["sm"]))
         self.search_entry = ttk.Entry(search, textvariable=self.query)
         self.search_entry.pack(side="left", fill="x", expand=True)
-        ttk.Button(search, text="清空", command=self.clear_search).pack(side="left", padx=(g["sm"], 0))
+        self.clear_search_button = ttk.Button(search, text="清空关键词", command=self.clear_search)
+        self.clear_search_button.pack(side="left", padx=(g["sm"], 0))
         self.panes = ttk.Panedwindow(shell, orient="horizontal")
         self.panes.grid(row=3, column=0, sticky="nsew")
         navigation = ttk.Frame(self.panes, width=245, padding=(0, 0, g["sm"], 0))
@@ -220,7 +223,7 @@ class BrowserApp:
         scroll.pack(side="right", fill="y")
         self.entries.pack(fill="both", expand=True)
         self.entries.bind("<<TreeviewSelect>>", self._selection_changed)
-        titlebar = ttk.Frame(self.content)
+        self.titlebar = titlebar = ttk.Frame(self.content)
         titlebar.grid(row=0, column=0, sticky="ew")
         titlebar.columnconfigure(0, weight=1)
         self.title = ttk.Label(titlebar, style="UIC.Heading.TLabel", wraplength=700)
@@ -238,7 +241,7 @@ class BrowserApp:
         self.usage = DocumentReader(self.tabs, store=self.store, horizontal=True)
         self.tabs.bind("<<NotebookTabChanged>>", self._tab_changed)
         self.content.bind("<Configure>", self._resize_text)
-        actions = ttk.Frame(self.content)
+        self.entry_actions = actions = ttk.Frame(self.content)
         actions.grid(row=4, column=0, sticky="ew", pady=(g["sm"], 0))
         actions.columnconfigure((0, 1, 2, 3), weight=1, uniform="action")
         self.copy_usage_button = ttk.Button(actions, text="复制示例", command=self.copy_usage,
@@ -250,6 +253,9 @@ class BrowserApp:
             button.grid(row=0, column=i, sticky="ew", padx=(0, 4), pady=(0, 4))
         self.source_label = ttk.Label(self.content, style="UIC.Muted.TLabel")
         self.source_label.grid(row=5, column=0, sticky="w")
+        self.empty_state = EmptyState(self.content, palette=self.palette, kind="no-results",
+                                      title="没有找到匹配条目", action_text="显示本类全部",
+                                      on_action=self.show_section_entries)
         footer = ttk.Frame(shell)
         footer.grid(row=4, column=0, sticky="ew", pady=(g["sm"], 0))
         footer.columnconfigure(0, weight=1)
@@ -298,20 +304,36 @@ class BrowserApp:
         self.search_entry.focus_set()
         return "break"
 
-    def refresh_entries(self, *_args):
+    def refresh_entries(self, *_args, preferred_key=None):
         if self._filtering:
             return
-        previous = self.current.key if self.current else None
-        filtered = filter_entries(self.query.get(), self.platform.get(), self.scene.get(), self.section.get())
+        previous = preferred_key or (self.current.key if self.current else None)
         self._filtering = True
-        children = self.entries.get_children()
-        if children:
-            self.entries.delete(*children)
-        for entry in filtered:
-            self.entries.insert("", "end", iid=entry.key, text=entry.title)
-        self.count.set(f"{len(filtered)} 个条目")
-        selected = next((entry for entry in filtered if entry.key == previous), filtered[0] if filtered else None)
-        self._filtering = False
+        notices = []
+        try:
+            section = self.section.get()
+            platforms = available_platforms(section)
+            self.platform_picker.configure(values=platforms)
+            if self.platform.get() not in platforms:
+                notices.append(f"平台“{self.platform.get()}”不适用于“{section}”，已恢复为全部平台。")
+                self.platform.set(PLATFORMS[0])
+            scenes = available_scenes(section, self.platform.get())
+            self.scene_picker.configure(values=scenes)
+            if self.scene.get() not in scenes:
+                notices.append(f"场景“{self.scene.get()}”不适用于当前分类及平台，已恢复为全部场景。")
+                self.scene.set(SCENES[0])
+            self.search_label.configure(text=f"在“{section}”中查找")
+            filtered = filter_entries(self.query.get(), self.platform.get(), self.scene.get(), section)
+            children = self.entries.get_children()
+            if children != tuple(entry.key for entry in filtered):
+                if children:
+                    self.entries.delete(*children)
+                for entry in filtered:
+                    self.entries.insert("", "end", iid=entry.key, text=entry.title)
+            self.count.set(f"{len(filtered)} 个条目")
+            selected = next((entry for entry in filtered if entry.key == previous), filtered[0] if filtered else None)
+        finally:
+            self._filtering = False
         if selected:
             self.entries.selection_set(selected.key)
             self.entries.focus(selected.key)
@@ -319,6 +341,20 @@ class BrowserApp:
             self.show_entry(selected)
         else:
             self.show_empty()
+        if notices:
+            self.status.set(" ".join(notices))
+
+    def show_section_entries(self):
+        self._filtering = True
+        try:
+            self.query.set("")
+            self.platform.set(PLATFORMS[0])
+            self.scene.set(SCENES[0])
+        finally:
+            self._filtering = False
+        self.refresh_entries()
+        self.search_entry.focus_set()
+        self.status.set(f"已显示“{self.section.get()}”全部条目。")
 
     def _selection_changed(self, _event=None):
         selection = self.entries.selection()
@@ -333,11 +369,7 @@ class BrowserApp:
         self.scene.set(SCENES[0])
         self.section.set(section_for(entry))
         self._filtering = False
-        self.refresh_entries()
-        self.entries.selection_set(key)
-        self.entries.focus(key)
-        self.entries.see(key)
-        self.show_entry(entry)
+        self.refresh_entries(preferred_key=key)
 
     def _dispose_views(self):
         if self.preview is not None:
@@ -358,25 +390,35 @@ class BrowserApp:
         self.tabs.select(self.preview_surface if preview else self.description)
 
     def show_empty(self):
+        focus = self.root.focus_get()
+        move_focus = focus is not None and any(str(focus).startswith(str(widget) + ".") or focus is widget
+                                               for widget in (self.tabs, self.entry_actions))
         self._dispose_views()
         self.current = None
-        self._set_tabs()
-        self.title.configure(text="没有找到匹配条目")
-        self.boundary.configure(text="调整关键词、内容分类或平台筛选。")
-        self.summary.configure(text="可试试：Spinner、骨架、弹窗、Tab、焦点。")
-        self.summary.grid()
-        self.platform_badge.grid_remove()
-        self.boundary.grid()
-        self.description.show("搜索包含中文名称、英文别名、摘要和场景。", markdown=False)
+        for widget in (self.titlebar, self.boundary, self.summary, self.tabs,
+                       self.entry_actions, self.source_label):
+            widget.grid_remove()
+        query = self.query.get().strip()
+        reason = f"当前范围内未找到关键词“{query}”。" if query else "当前分类及筛选条件中没有条目。"
+        self.empty_state.set_state("no-results", title="没有找到匹配条目",
+            message=f"{reason}\n\n内容：{self.section.get()}\n平台：{self.platform.get()} · 场景：{self.scene.get()}\n\n"
+                    "搜索仅查找当前分类的中文名称、英文别名、摘要和场景。",
+            action_text="显示本类全部")
+        self.empty_state.grid(row=0, column=0, rowspan=4, sticky="nsew")
         for button in (self.copy_ai_button, self.copy_usage_button, self.preview_button, self.source_button):
             button.state(["disabled"])
         self.source_label.configure(text="")
+        if move_focus:
+            self.empty_state.action.focus_set()
 
     def show_entry(self, entry):
         if self.current is not None and self.current.key == entry.key:
             return
         self._dispose_views()
         self.current = entry
+        self.empty_state.grid_remove()
+        for widget in (self.titlebar, self.tabs, self.entry_actions, self.source_label):
+            widget.grid()
         self.title.configure(text=entry.title)
         self.boundary.configure(text=entry.boundary)
         self.summary.configure(text=entry.summary)
@@ -501,6 +543,7 @@ class BrowserApp:
             if self._help_reader is not None and self._help_reader.winfo_exists():
                 self._help_reader.apply_palette(palette, self.tokens, font_scale=self.scale)
             self.preview_surface.apply_palette(palette)
+            self.empty_state.apply_palette(palette)
             if self.live_view is not None:
                 self.live_view.apply_palette(palette)
                 self.live_view.set_reduced_motion(self.motion_reduced)

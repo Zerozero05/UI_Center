@@ -136,6 +136,18 @@ def filter_entries(query="", platform="全部平台", scene="全部场景", sect
                              + " " + entry.key).casefold() for term in terms)]
 
 
+def available_platforms(section):
+    """Keep the platform order, including shared entries in platform scopes."""
+    return tuple(platform for platform in PLATFORMS
+                 if platform == PLATFORMS[0] or filter_entries(platform=platform, section=section))
+
+
+def available_scenes(section, platform):
+    """Navigation choices depend on scope, never on a transient search query."""
+    return tuple(scene for scene in SCENES
+                 if scene == SCENES[0] or filter_entries(platform=platform, scene=scene, section=section))
+
+
 def body_for(store, entry):
     if entry.key == "licenses":
         return store.license_text()

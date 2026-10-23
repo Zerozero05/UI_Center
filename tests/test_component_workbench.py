@@ -38,7 +38,7 @@ COMPONENTS = {
 
 
 def work_directory(prefix):
-    parent = ROOT / "work" / "workbench"
+    parent = ROOT / "work" / "v1.2.2" / "workbench"
     parent.mkdir(parents=True, exist_ok=True)
     return Path(tempfile.mkdtemp(prefix=prefix, dir=parent))
 
@@ -349,8 +349,10 @@ class WorkbenchIntegrationTests(unittest.TestCase):
         self.assertEqual(self.app.entries.get_children(), ("inline-alert", "toast", "empty-state"))
         self.app.platform.set("Android")
         self.update()
-        self.assertIsNone(self.app.current)
-        self.assertTrue(self.app.copy_usage_button.instate(["disabled"]))
+        self.assertEqual(self.app.scene.get(), "全部场景")
+        self.assertEqual(self.app.entries.get_children(), ("android-theme", "android-actions", "android-state"))
+        self.assertEqual(self.app.current.key, "android-theme")
+        self.assertIn("已恢复为全部场景", self.app.status.get())
 
     def test_help_reuses_window_tracks_appearance_and_supports_tab_and_search(self):
         self.app.show_help()

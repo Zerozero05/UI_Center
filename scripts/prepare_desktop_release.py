@@ -1,4 +1,4 @@
-"""Prepare verified v1.2.1 candidate files; never publishes anything.
+"""Prepare verified v1.2.2 candidate files; never publishes anything.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
@@ -44,10 +44,18 @@ def validate_runtime_reports(directory, version, commit):
     return artifacts
 
 
+def release_notes_body(document, version):
+    """Use the release document's product description below its version title."""
+    title, _, body = document.partition("\n")
+    if title.strip() != f"# v{version}":
+        raise ValueError("Release document must start with the current version title")
+    return body.strip()
+
+
 def prepare(directory):
     version = (ROOT / "VERSION").read_text(encoding="utf-8-sig").strip()
-    if version != "1.2.1":
-        raise ValueError("This candidate release preparation is restricted to 1.2.1")
+    if version != "1.2.2":
+        raise ValueError("This candidate release preparation is restricted to 1.2.2")
     commit = git("rev-parse", "HEAD").decode().strip()
     runtime = validate_runtime_reports(directory, version, commit)
     archive_path = directory / f"UI_Center_v{version}_Source.zip"
@@ -64,8 +72,9 @@ def prepare(directory):
     assets = runtime + [archive_path]
     lines = [hashlib.sha256(path.read_bytes()).hexdigest() + "  " + path.name for path in assets]
     (directory / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    notes = (ROOT / f"docs/releases/v{version}.md").read_text(encoding="utf-8-sig").rstrip()
-    notes += f"\n\n源码提交：`{commit}`。本次 Windows 源码/便携包/单文件包及 Android 构建检查均需成功后才公开。\n"
+    document = (ROOT / f"docs/releases/v{version}.md").read_text(encoding="utf-8-sig")
+    notes = release_notes_body(document, version)
+    notes += f"\n\n源码提交：`{commit}`。\n"
     notes += "\n附件实际大小：\n\n"
     notes += "\n".join(f"- `{path.name}`：{path.stat().st_size:,} 字节。" for path in assets)
     notes += "\n\n" + "两种冻结包均在中文及空格路径、整个运行目录迁移后、无 Python/Tcl 环境变量及无关工作目录下完成真实控件冒烟；四份报告均绑定同一源码提交与对应附件字节，具体检查见该次 Actions 日志。\n"

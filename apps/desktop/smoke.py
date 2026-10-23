@@ -71,8 +71,38 @@ def run_smoke(app, report_path):
         check("real_browser_widgets", "spinner" in app.entries.get_children() and app.description.text.winfo_exists())
         app.query.set("shummer")
         check("english_alias_search", app.entries.get_children() == ("shimmer",))
+        scene_choices = tuple(app.scene_picker.cget("values"))
         app.query.set("不会存在的匹配字符串XYZ")
         check("empty_search_results", app.current is None and app.copy_ai_button.instate(["disabled"]))
+        root.update()
+        check("empty_results_have_recovery_not_document_tabs", app.empty_state.winfo_ismapped()
+              and not app.tabs.winfo_ismapped() and not app.entry_actions.winfo_ismapped()
+              and app.empty_state.action.cget("text") == "显示本类全部")
+        check("keywords_do_not_change_filter_choices", tuple(app.scene_picker.cget("values")) == scene_choices)
+        app.empty_state.action.invoke()
+        check("empty_recovery_preserves_category", app.section.get() == "组件库" and app.query.get() == ""
+              and app.platform.get() == "全部平台" and app.scene.get() == "全部场景"
+              and app.current is not None)
+        check("component_choices_exclude_impossible_combinations", "通用" not in app.platform_picker.cget("values")
+              and "复用与来源" not in app.scene_picker.cget("values"))
+        app.scene.set("加载组件")
+        app.platform.set("Android")
+        check("platform_change_resets_only_invalid_scene", app.platform.get() == "Android"
+              and app.scene.get() == "全部场景" and len(app.entries.get_children()) == 3
+              and "加载组件" not in app.scene_picker.cget("values"))
+        app.section.set("资料与来源")
+        app.scene.set("复用与来源")
+        app.query.set("借鉴来源")
+        check("references_remain_in_their_category", app.entries.get_children() == ("sources",))
+        app.clear_search()
+        check("clear_keyword_keeps_filters", app.query.get() == "" and app.section.get() == "资料与来源"
+              and app.platform.get() == "Android" and app.scene.get() == "复用与来源"
+              and len(app.entries.get_children()) == 5)
+        app.query.set("不会存在的匹配字符串XYZ")
+        app.empty_state.action.invoke()
+        check("reference_empty_recovery_stays_in_category", app.section.get() == "资料与来源"
+              and app.query.get() == "" and app.platform.get() == "全部平台"
+              and app.scene.get() == "全部场景" and len(app.entries.get_children()) == 6)
         app.select_entry("pattern-tasks")
         check("guidelines_have_one_document", len(app.tabs.tabs()) == 1 and app.preview_button.instate(["disabled"]))
         app.select_entry("android-theme")
@@ -116,6 +146,75 @@ def run_smoke(app, report_path):
             root.update()
             check("component_" + key, view.winfo_exists() and len(app.tabs.tabs()) == 3
                   and code.strip() != body_for(app.store, app.current).strip())
+            if key in ("skeleton", "shimmer"):
+                app.motion.set("normal")
+                view.reset()
+                root.update()
+                check(key + "_chinese_effect_controls", tuple(view.layout_combo.cget("values")) == ("列表", "卡片")
+                      and tuple(view.effect_combo.cget("values")) == ("开启", "关闭")
+                      and str(view.effect_combo.cget("state")) == "readonly")
+                view.layout_combo.set("卡片")
+                view.layout_combo.event_generate("<<ComboboxSelected>>")
+                view.effect_combo.set("关闭")
+                view.effect_combo.event_generate("<<ComboboxSelected>>")
+                argument = "animate" if key == "skeleton" else "enabled"
+                check(key + "_chinese_choices_keep_original_api", view.setting.get() == "card"
+                      and view.widget.variant == "card" and not view.enabled.get()
+                      and "variant='card'" in view.code() and argument + "=False" in view.code()
+                      and view.widget._after_id is None and "效果已关闭" in view.message.get())
+                app.motion.set("reduced")
+                check(key + "_reduced_motion_keeps_local_choice", not view.enabled.get()
+                      and view.effect_label.get() == "关闭" and str(view.effect_combo.cget("state")) == "disabled"
+                      and view.widget._after_id is None and "减少动画" in view.message.get())
+                view.stop()
+                app.motion.set("normal")
+                check(key + "_motion_restore_does_not_restart_stopped", not view.widget.running
+                      and view.widget._after_id is None and "已停止" in view.message.get())
+                view.reset()
+                canvas = view.widget.canvas
+                first = canvas.find_withtag("placeholder")[0]
+                original_color = canvas.itemcget(first, "fill")
+                deadline = time.monotonic() + 2
+                changed = False
+                while time.monotonic() < deadline:
+                    root.tk.dooneevent(_tkinter.DONT_WAIT)
+                    changed = (canvas.itemcget(canvas.find_withtag("placeholder")[0], "fill") != original_color if key == "skeleton"
+                               else bool(canvas.find_withtag("shimmer")))
+                    if changed:
+                        break
+                    time.sleep(.002)
+                check(key + "_actual_timer_renders_effect", changed and view.widget._after_id is not None)
+                if key == "shimmer":
+                    check("shimmer_keeps_stable_base", all(canvas.itemcget(item, "fill") == view.palette["hover"]
+                          for item in canvas.find_withtag("placeholder")))
+                    clipped = True
+                    for item in canvas.find_withtag("shimmer"):
+                        tag = next(tag for tag in canvas.gettags(item) if tag.startswith("clip-"))
+                        base = canvas.find_withtag("placeholder")[int(tag[5:])]
+                        x0, y0, x1, y1 = canvas.coords(base)
+                        points = canvas.coords(item)
+                        if canvas.type(base) == "oval":
+                            cx, cy, rx, ry = (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2
+                            clipped &= all(((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1 + 1e-7
+                                           for x, y in zip(points[::2], points[1::2]))
+                        else:
+                            a, top, b, bottom = points
+                            clipped &= x0 <= a <= b <= x1 and y0 <= top <= bottom <= y1
+                    check("shimmer_highlights_stay_in_occupied_shapes", clipped)
+        app.select_entry("shimmer")
+        view = app.live_view
+        view.enabled.set(False)
+        view._parameters()
+        independent = app.open_preview()
+        independent.view.stop()
+        app.motion.set("reduced")
+        app.motion.set("normal")
+        check("loading_windows_keep_independent_parameters", not view.enabled.get() and view.widget.running
+              and independent.view.enabled.get() and not independent.view.widget.running
+              and view.widget._after_id is None and independent.view.widget._after_id is None
+              and "已停止" in independent.view.message.get())
+        independent.close()
+        root.update()
         app.select_entry("page-loader")
         view = app.live_view
         view.input_text.set("切换后保留输入")
@@ -136,6 +235,10 @@ def run_smoke(app, report_path):
         check("standalone_close_preserves_workbench", app.preview is None and root.winfo_exists())
         app.root.geometry("820x600")
         root.update()
+        report["small_window"] = {"width": root.winfo_width(), "height": root.winfo_height(),
+            "actions": [{"text": widget.cget("text"), "mapped": bool(widget.winfo_ismapped()),
+                         "bottom": widget.winfo_rooty() + widget.winfo_height() - root.winfo_rooty()}
+                        for widget in (app.copy_ai_button, app.copy_usage_button, app.preview_button, app.source_button)]}
         check("small_window_actions_visible", all(widget.winfo_ismapped() and
               widget.winfo_rooty() + widget.winfo_height() <= root.winfo_rooty() + root.winfo_height()
               for widget in (app.copy_ai_button, app.copy_usage_button, app.preview_button, app.source_button)))

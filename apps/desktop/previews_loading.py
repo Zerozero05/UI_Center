@@ -14,6 +14,7 @@ from .preview_base import PreviewView, example_code
 
 IDS = ("spinner", "progress-bar", "circular-progress", "skeleton", "shimmer",
        "loading-button", "page-loader")
+LAYOUTS = {"列表": "list", "卡片": "card"}
 
 
 class LoadingPreview(PreviewView):
@@ -53,9 +54,13 @@ class LoadingPreview(PreviewView):
             self._scale(2)
             self.widget = CircularProgress(self.holder, **kwargs)
         elif key in ("skeleton", "shimmer"):
-            self._combo("布局", self.setting, ("list", "card"))
-            ttk.Checkbutton(self.params, text="装饰动画", variable=self.enabled,
-                            command=self._parameters).grid(row=0, column=2, padx=8)
+            self.layout_label = tk.StringVar(self, value="列表")
+            self.effect_label = tk.StringVar(self, value="开启")
+            self.layout_combo = self._combo("布局", self.layout_label, tuple(LAYOUTS))
+            self.layout_combo.bind("<<ComboboxSelected>>", self._layout_selected)
+            self.effect_combo = self._combo("脉动效果" if key == "skeleton" else "扫光效果",
+                                            self.effect_label, ("开启", "关闭"), column=2)
+            self.effect_combo.bind("<<ComboboxSelected>>", self._effect_selected)
             cls = Skeleton if key == "skeleton" else Shimmer
             self.widget = cls(self.holder, **kwargs)
         elif key == "loading-button":
@@ -94,6 +99,34 @@ class LoadingPreview(PreviewView):
                              width=width, state="readonly")
         combo.grid(row=0, column=column + 1, padx=(0, 8))
         combo.bind("<<ComboboxSelected>>", lambda event: self._parameters())
+        return combo
+
+    def _layout_selected(self, _event=None):
+        self.setting.set(LAYOUTS[self.layout_label.get()])
+        self._parameters()
+
+    def _effect_selected(self, _event=None):
+        self.enabled.set(self.effect_label.get() == "开启")
+        self._parameters()
+
+    def set_reduced_motion(self, enabled):
+        super().set_reduced_motion(enabled)
+        if self.key in ("skeleton", "shimmer"):
+            self._placeholder_feedback()
+
+    def _placeholder_feedback(self):
+        effect = "脉动" if self.key == "skeleton" else "扫光"
+        self.effect_combo.configure(state="disabled" if self.reduced_motion else "readonly")
+        if not self.widget.running:
+            message = "已停止；保留静态占位，点击“开始”可重新演示。"
+        elif self.reduced_motion:
+            message = f"减少动画已启用，当前为静态占位；顶部选择“正常动画”可查看{effect}。"
+        elif not self.enabled.get():
+            message = f"{effect}效果已关闭；当前为静态占位。"
+        else:
+            message = ("正在演示脉动：占位块平滑明暗变化。" if self.key == "skeleton"
+                       else "正在演示扫光：高光仅在占位块内移动，空白区域保持不变。")
+        self.message.set(message)
 
     def _entry(self, title, variable, column, width):
         ttk.Label(self.params, text=title).grid(row=0, column=column, padx=(0, 5))
@@ -121,10 +154,14 @@ class LoadingPreview(PreviewView):
             widget.set_progress(self.value.get())
         elif key in ("skeleton", "shimmer"):
             widget.set_variant(self.setting.get())
+            self.layout_label.set(next(label for label, value in LAYOUTS.items()
+                                       if value == self.setting.get()))
+            self.effect_label.set("开启" if self.enabled.get() else "关闭")
             if key == "shimmer":
                 widget.set_enabled(self.enabled.get())
             else:
                 widget.set_animation(self.enabled.get())
+            self._placeholder_feedback()
         else:
             widget.set_text(self.text.get())
 
@@ -145,7 +182,10 @@ class LoadingPreview(PreviewView):
             self.schedule(180, self._advance)
         else:
             widget.start()
-            self.message.set("装饰动画可随减少动画设置暂停；实际进度由调用者提供。")
+            if key in ("skeleton", "shimmer"):
+                self._placeholder_feedback()
+            else:
+                self.message.set("装饰动画可随减少动画设置暂停；实际进度由调用者提供。")
             if key == "circular-progress" or (key == "progress-bar" and widget.mode == "determinate"):
                 self.schedule(180, self._advance)
 
@@ -173,6 +213,8 @@ class LoadingPreview(PreviewView):
         self.cancel_task()
         self.widget.stop()
         self.message.set("模拟任务已取消；保留当前进度和参数。")
+        if self.key in ("skeleton", "shimmer"):
+            self._placeholder_feedback()
 
     def reset(self):
         self.cancel_task()
@@ -190,6 +232,8 @@ class LoadingPreview(PreviewView):
         if self.key in ("spinner", "skeleton", "shimmer"):
             self.widget.start()
         self.message.set("预览使用虚构数据；可调整参数、开始、取消或重置。")
+        if self.key in ("skeleton", "shimmer"):
+            self._placeholder_feedback()
 
     def code(self):
         key, widget = self.key, self.widget
