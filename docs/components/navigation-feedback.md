@@ -1,5 +1,7 @@
 # 导航与反馈组件（Tkinter）
 
+工作台中的布尔参数和固定二选一使用文字分段，三项以上使用中文下拉选项；参数区、操作区与预览区分开显示。“重置”恢复本组件参数，不改变主题、字号或动画偏好。界面显示“提示、成功、警告、错误”等中文，复制的代码仍使用组件原有的 `info/success/warning/error` 标识；页签、展开项、选择值和关闭原因的示例反馈也使用中文。
+
 这些组件仅呈现调用方的数据并发出回调；不会处理文件、访问网络或保存设置。实现使用 Python 标准库 Tk/ttk，沿用仓库 [设计规范](../design-guide.md) 和共享 [tokens](../../tokens/README.md)，没有新增第三方运行依赖或外部源码改编。源文件：[navigation.py](../../components/tkinter/ui_center/navigation.py)、[feedback.py](../../components/tkinter/ui_center/feedback.py)。
 
 接入时把 `components/tkinter/ui_center/` 复制到应用可导入位置，并在示例脚本旁放置 `tokens/design-tokens.json`。以下示例完整可运行；所有组件都要求在 Tk UI 线程上调用。先执行 `palette = apply_theme(root, mode)`，再向已创建的组件调用 `apply_palette(palette)`，保留选择、输入、展开状态和消息。字号随 `TkDefaultFont` 更新。颜色本身不能替代消息中的语义文字。
@@ -14,7 +16,7 @@
 
 **键盘**：Tab 进入当前页签，再次 Tab 进入当前页面中的控件；方向键循环切页并跳过禁用页；Home/End 到首末可用页；Enter/空格激活当前页签。每个页签使用真实可聚焦的 Tk 单选按钮。
 
-**接入**：把业务控件添加到 `add` 返回的页面中，通过回调获知切换，不在回调中无条件重建页面。页签支持的键位限定在页签本身，页面输入框保留编辑按键。
+**接入**：把业务控件添加到 `add` 返回的页面中，通过回调获知切换，不在回调中无条件重建页面。页签支持的键位限定在页签本身，页面输入框保留编辑按键。标题采用浅平边线，选中项使用选中色，悬停、禁用和键盘焦点各有明确状态。
 
 **依赖**：标准库 `tkinter`、`ttk` 与项目主题。读屏器对 Tk 自定义页签的角色识别依赖平台，未声明具备原生 Notebook 的全部辅助功能。
 
@@ -30,7 +32,8 @@ root = tk.Tk()
 root.title('UI_Center 组件示例')
 root.geometry('620x420')
 palette = apply_theme(root, tokens_path=Path(__file__).parent / 'tokens' / 'design-tokens.json')
-tabs = Tabs(root, palette=palette, on_change=print)
+page_names = {'overview': '概览', 'settings': '项目设置', 'history': '历史记录'}
+tabs = Tabs(root, palette=palette, on_change=lambda key: print("已切换到：" + page_names[key]))
 tabs.pack(fill="both", expand=True, padx=12, pady=12)
 for key, text in [('overview', '概览'), ('settings', '项目设置'), ('history', '历史记录')]:
     page = tabs.add(key, text=text, disabled=key == "history" and True)
@@ -50,7 +53,7 @@ root.mainloop()
 
 **键盘**：Tab 逐项定位可用标题及已展开的内容控件；空格/Enter 切换；上下键在标题之间循环并跳过禁用项；Home/End 到首末标题；右键展开、左键收起。箭头文字同时表达展开状态。
 
-**接入**：把内容放入 `add` 返回的 Frame；标题按钮可直接通过真实鼠标或键盘操作。业务校验、数据加载和滚动由调用方负责。`apply_palette` 不改变展开集。
+**接入**：把内容放入 `add` 返回的 Frame；标题按钮可直接通过真实鼠标或键盘操作。浅平标题的箭头与选中色共同表示展开状态；悬停和焦点不会改变展开集。业务校验、数据加载和滚动由调用方负责。`apply_palette` 不改变展开集。
 
 **依赖**：标准库 Tk/ttk 和共享主题，无动画或计时资源。
 
@@ -66,7 +69,9 @@ root = tk.Tk()
 root.title('UI_Center 组件示例')
 root.geometry('620x420')
 palette = apply_theme(root, tokens_path=Path(__file__).parent / 'tokens' / 'design-tokens.json')
-accordion = Accordion(root, palette=palette, multiple=False, on_change=print)
+section_names = {'general': '通用设置', 'advanced': '高级选项', 'help': '使用说明'}
+accordion = Accordion(root, palette=palette, multiple=False,
+    on_change=lambda keys: print("已展开：" + ("、".join(section_names[key] for key in keys) or "无")))
 accordion.pack(fill="x", padx=12, pady=12)
 for key, text in [('general', '通用设置'), ('advanced', '高级选项'), ('help', '使用说明')]:
     body = accordion.add(key, text=text, expanded=key in ('general',))
@@ -85,7 +90,7 @@ root.mainloop()
 
 **键盘**：Tab 进入当前选项，再次 Tab 离开整组；方向键循环选择可用项；Home/End 到首末可用项；空格/Enter 激活当前项。禁用项不参与方向键循环。
 
-**接入**：在回调里更新调用方视图；不要把同一回调同时绑定到鼠标事件，以免一次操作触发两次。文本按宽度换行，仍应采用简洁、同层级的选项名。
+**接入**：在回调里更新调用方视图；不要把同一回调同时绑定到鼠标事件，以免一次操作触发两次。浅平选项用选中色表达当前值，禁用项不响应悬停选择；焦点边线供键盘定位。文本按宽度换行，仍应采用简洁、同层级的选项名。
 
 **依赖**：标准库 Tk/ttk 与共享主题，无业务状态存储和计时器。
 
@@ -101,9 +106,11 @@ root = tk.Tk()
 root.title('UI_Center 组件示例')
 root.geometry('620x420')
 palette = apply_theme(root, tokens_path=Path(__file__).parent / 'tokens' / 'design-tokens.json')
+option_names = {'day': '日', 'week': '周', 'year': '年度'}
 control = SegmentedControl(root, palette=palette,
     options=(("day", "日"), ("week", "周"), ("year", "年度")),
-    value='week', disabled=('year',), on_change=print)
+    value='week', disabled=('year',),
+    on_change=lambda value: print("已选择：" + option_names[value]))
 control.pack(fill="x", padx=12, pady=12)
 root.mainloop()
 ```
@@ -118,9 +125,9 @@ root.mainloop()
 
 **键盘**：Tab 进入正文，再次 Tab 到操作按钮或下一个可聚焦控件；Shift+Tab 反向；正文支持标准选择、复制和滚动；按钮以空格激活。只读并不妨碍选择复制。
 
-**接入**：在输入区或结果区就近放置；错误修复由 `on_action()` 通知调用方处理。消息区显示有限行数并提供滚动条，不会把后续操作挤出窗口。
+**接入**：在输入区或结果区就近放置；错误修复由 `on_action()` 通知调用方处理。正文根据内容、可用宽度和字号调整为 1–4 个实际显示行，超过四行时才显示滚动条。短消息不预留四行空白；长文继续保留选择、复制与滚动，焦点进入正文时显示焦点边线。主题切换不重置阅读位置或选区。
 
-**依赖**：标准库 Tk/ttk 与共享主题。没有计时器；持续保留直到调用方更新或销毁。
+**依赖**：标准库 Tk/ttk 与共享主题。布局变化合并为一次 `after_idle` 测量，销毁时取消尚未执行的测量；没有周期计时器，消息持续保留直到调用方更新或销毁。
 
 <!-- example:inline-alert -->
 ```python
@@ -166,8 +173,9 @@ root = tk.Tk()
 root.title('UI_Center 组件示例')
 root.geometry('620x420')
 palette = apply_theme(root, tokens_path=Path(__file__).parent / 'tokens' / 'design-tokens.json')
+close_reasons = {"manual": "手动关闭", "timeout": "自动关闭"}
 toast = Toast(root, palette=palette, kind='success', duration=4000,
-    message="演示设置已保存。", on_close=print)
+    message='演示设置已保存。', on_close=lambda reason: print("轻提示已关闭：" + close_reasons[reason]))
 toast.pack(fill="x", padx=12, pady=12)
 ttk.Button(root, text="再次显示", command=lambda: toast.show()).pack()
 toast.show()

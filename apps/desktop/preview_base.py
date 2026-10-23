@@ -3,11 +3,12 @@
 SPDX-License-Identifier: AGPL-3.0-only
 """
 from tkinter import ttk, StringVar
+from .parameters import ParameterForm
 
 
 class PreviewView(ttk.Frame):
     def __init__(self, master, *, palette, reduced_motion=False):
-        super().__init__(master, padding=12)
+        super().__init__(master, padding=16)
         self.palette = palette
         self.reduced_motion = bool(reduced_motion)
         self.managed = []
@@ -20,6 +21,17 @@ class PreviewView(ttk.Frame):
         self.rowconfigure(1, weight=1)
         self.controls = ttk.Frame(self)
         self.controls.grid(row=0, column=0, sticky="ew", pady=(0, 12))
+        self.controls.columnconfigure(0, weight=1)
+        self.form = self.register(ParameterForm(self.controls, palette=palette))
+        self.form.grid(row=0, column=0, sticky="ew")
+        self.actions = ttk.Frame(self.controls)
+        self._controls_actions = self.actions
+        self.actions.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+        self.actions.columnconfigure(98, weight=1)
+        self.reset_button = ttk.Button(self.actions, text="重置", command=self.reset,
+                                      style="UIC.Secondary.TButton")
+        self.reset_button.grid(row=0, column=99, sticky="e")
+        self.controls.bind("<Configure>", self._arrange_controls)
         self.stage = ttk.Frame(self)
         self.stage.grid(row=1, column=0, sticky="nsew")
         self.message = StringVar(master=self, value="预览仅使用虚构数据，不处理你的文件。")
@@ -32,6 +44,16 @@ class PreviewView(ttk.Frame):
     def register(self, widget):
         self.managed.append(widget)
         return widget
+
+    def _arrange_controls(self, _event=None):
+        other_actions = [child for child in self._controls_actions.winfo_children()
+                         if child is not self.reset_button and child.winfo_manager()]
+        if other_actions:
+            self._controls_actions.grid(row=1, column=0, columnspan=2, sticky="ew", padx=0, pady=(8, 0))
+        elif self.reset_button.winfo_manager():
+            self._controls_actions.grid(row=0, column=1, columnspan=1, sticky="se", padx=(8, 0), pady=0)
+        else:
+            self._controls_actions.grid_remove()
 
     def apply_palette(self, palette):
         self.palette = palette

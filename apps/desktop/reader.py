@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import font as tkfont, ttk
 from urllib.parse import urlsplit
 import webbrowser
+from .scrolling import AutoScrollbar
 
 
 class DocumentReader(ttk.Frame):
@@ -14,14 +15,16 @@ class DocumentReader(ttk.Frame):
         self.store = store
         self.text = tk.Text(self, wrap="none" if horizontal else "word", borderwidth=0,
                             takefocus=True, state="disabled", cursor="xterm", undo=False)
-        bar = ttk.Scrollbar(self, orient="vertical", command=self.text.yview)
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.vertical = bar = AutoScrollbar(self, orient="vertical", command=self.text.yview)
         self.text.configure(yscrollcommand=bar.set)
-        bar.pack(side="right", fill="y")
+        bar.grid(row=0, column=1, sticky="ns")
         if horizontal:
-            horizontal_bar = ttk.Scrollbar(self, orient="horizontal", command=self.text.xview)
+            self.horizontal = horizontal_bar = AutoScrollbar(self, orient="horizontal", command=self.text.xview)
             self.text.configure(xscrollcommand=horizontal_bar.set)
-            horizontal_bar.pack(side="bottom", fill="x")
-        self.text.pack(fill="both", expand=True)
+            horizontal_bar.grid(row=1, column=0, sticky="ew")
+        self.text.grid(row=0, column=0, sticky="nsew")
         self._links = []
 
     def apply_palette(self, palette, tokens, *, font_scale=1.0):
@@ -32,7 +35,7 @@ class DocumentReader(ttk.Frame):
                        selectbackground=palette["selected_background"],
                        selectforeground=palette["selected_foreground"],
                        inactiveselectbackground=palette["selected_background"],
-                       highlightbackground=palette["border"], highlightcolor=palette["focus"],
+                       highlightbackground=palette["surface"], highlightcolor=palette["focus"],
                        highlightthickness=1, padx=gap["lg"], pady=gap["md"])
         family = tkfont.nametofont("TkDefaultFont", root=text).actual("family")
         size = max(1, round(tokens["typography"]["body"]["tk_points"] * font_scale))

@@ -77,6 +77,14 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
                     "foreground": [("disabled", p["disabled"]), ("!disabled", p["selected_foreground"])],
                     "bordercolor": edge, "lightcolor": edge, "darkcolor": edge},
         },
+        "UIC.Secondary.TButton": {
+            "configure": {"padding": (gap["sm"], gap["xs"]), "relief": "flat",
+                          "borderwidth": 1, "background": p["surface"], "foreground": p["foreground"]},
+            "map": {"background": [("disabled", p["background"]), ("active", p["hover"])],
+                    "foreground": disabled, "bordercolor": [("focus", p["focus"]), ("!focus", p["surface"])],
+                    "lightcolor": [("focus", p["focus"]), ("!focus", p["surface"])],
+                    "darkcolor": [("focus", p["focus"]), ("!focus", p["surface"])]},
+        },
         "TEntry": {
             "configure": {"padding": gap["xs"], "insertcolor": p["foreground"]},
             "map": {"foreground": disabled, "fieldbackground": [("disabled", p["background"])],
@@ -93,12 +101,13 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
         },
         "TScrollbar": {
             "configure": {"background": p["surface"], "troughcolor": p["background"],
-                          "arrowcolor": p["foreground"]},
+                          "arrowcolor": p["foreground"], "width": max(10, round(10 * font_scale))},
             "map": {"background": [("active", p["hover"])]},
         },
         "Treeview": {
             "configure": {"background": p["surface"], "fieldbackground": p["surface"],
-                          "foreground": p["foreground"], "rowheight": body_font.metrics("linespace") + gap["sm"]},
+                          "foreground": p["foreground"], "rowheight": body_font.metrics("linespace") + gap["sm"],
+                          "borderwidth": 0, "relief": "flat"},
             "map": {"background": [("selected", p["selected_background"])],
                     "foreground": [("selected", p["selected_foreground"])]},
         },
@@ -116,6 +125,9 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
     else:
         style.theme_create(name, parent="clam", settings=settings)
     style.theme_use(name)
+    for direction, sticky in (("Vertical", "ns"), ("Horizontal", "ew")):
+        style.layout(direction + ".TScrollbar", [(direction + ".Scrollbar.trough", {
+            "sticky": sticky, "children": [(direction + ".Scrollbar.thumb", {"expand": "1", "sticky": "nswe"})]})])
     # The combobox popup is a Tk listbox, not a ttk widget. Recolor already-opened
     # popdowns as well as future popdowns; do not open a popup to refresh it.
     for option, color in (("background", p["input_background"]), ("foreground", p["foreground"]),

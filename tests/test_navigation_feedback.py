@@ -167,6 +167,52 @@ class NavigationFeedbackTests(unittest.TestCase):
         self.assertEqual(control.select(), "c")
         self.assertEqual(control._buttons["b"].cget("state"), "disabled")
 
+    def test_navigation_flat_hover_selected_disabled_and_focus_states(self):
+        tabs = Tabs(self.root, palette=self.palette)
+        tabs.pack(fill="x")
+        tabs.add("first", text="概览")
+        tabs.add("second", text="设置")
+        accordion = Accordion(self.root, palette=self.palette)
+        accordion.pack(fill="x")
+        accordion.add("first", text="通用", expanded=True)
+        accordion.add("second", text="更多")
+        segments = SegmentedControl(self.root, palette=self.palette,
+            options=(("first", "日"), ("second", "周")))
+        segments.pack(fill="x")
+        self.root.update()
+        for mode in load_tokens()["themes"]:
+            palette = apply_theme(self.root, mode)
+            for component in (tabs, accordion, segments):
+                component.apply_palette(palette)
+                selected, other = component._buttons["first"], component._buttons["second"]
+                other.event_generate("<Leave>")
+                self.root.update()
+                self.assertEqual(int(other.cget("borderwidth")), 0)
+                self.assertEqual(other.cget("relief"), "flat")
+                self.assertEqual(other.cget("background"), palette["surface"])
+                self.assertEqual(selected.cget("background"), palette["selected_background"])
+                self.assertEqual(selected.cget("foreground"), palette["selected_foreground"])
+                other.event_generate("<Enter>")
+                self.root.update()
+                self.assertEqual(other.cget("background"), palette["hover"])
+                selected.focus_force()
+                self.root.update()
+                self.assertEqual(self.root.focus_get(), selected)
+                self.assertEqual(selected.cget("highlightcolor"), palette["focus"])
+                other.event_generate("<Leave>")
+        tabs.set_disabled("first")
+        segments.set_disabled("first")
+        for component in (tabs, segments):
+            disabled = component._buttons["first"]
+            disabled.event_generate("<Enter>")
+            self.root.update()
+            self.assertEqual(disabled.cget("background"), palette["surface"])
+            self.assertEqual(disabled.cget("disabledforeground"), palette["disabled"])
+            self.assertEqual(component.select(), "second")
+        accordion.set_expanded("second")
+        self.assertEqual(accordion._buttons["first"].cget("background"), palette["surface"])
+        self.assertEqual(accordion._buttons["second"].cget("background"), palette["selected_background"])
+
     def test_inline_alert_persists_readable_text_and_action(self):
         calls = []
         message = "非常长的中文说明，可以选择复制。\n" * 50
@@ -192,6 +238,66 @@ class NavigationFeedbackTests(unittest.TestCase):
         self.assertEqual(self.root.focus_get(), alert.action)
         with self.assertRaises(ValueError):
             alert.set_message("invalid", kind="unknown")
+
+    def test_inline_alert_height_fits_short_messages_and_scrolls_only_overflow(self):
+        alert = InlineAlert(self.root, palette=self.palette, message="一行提示")
+        alert.pack(fill="x")
+        for lines in range(1, 6):
+            message = "\n".join("第" + str(index) + "行" for index in range(lines))
+            alert.set_message(message)
+            self.root.update()
+            self.assertEqual(int(alert.body.cget("height")), min(lines, 4))
+            self.assertEqual(bool(alert.scrollbar.winfo_ismapped()), lines > 4)
+            self.assertEqual(alert.body.get("1.0", "end-1c"), message)
+        alert.set_message("恢复为短提示")
+        self.root.update()
+        self.assertEqual(int(alert.body.cget("height")), 1)
+        self.assertFalse(alert.scrollbar.winfo_ismapped())
+
+    def test_inline_alert_reflows_with_width_font_and_keeps_selection_and_read_position(self):
+        alert = InlineAlert(self.root, palette=self.palette, message="中文" * 50)
+        alert.pack(fill="x")
+        self.root.update()
+        self.assertLess(int(alert.body.cget("height")), 4)
+        self.assertFalse(alert.scrollbar.winfo_ismapped())
+        self.root.geometry("220x480+50+50")
+        self.root.update()
+        self.assertEqual(int(alert.body.cget("height")), 4)
+        self.assertTrue(alert.scrollbar.winfo_ismapped())
+        self.root.geometry("900x480+50+50")
+        self.root.update()
+        self.assertLess(int(alert.body.cget("height")), 4)
+        self.assertFalse(alert.scrollbar.winfo_ismapped())
+        alert.set_message("一行\n两行\n三行\n四行")
+        self.root.update()
+        normal_height = alert.body.winfo_height()
+        alert.apply_palette(apply_theme(self.root, font_scale=1.5))
+        self.root.update()
+        self.assertEqual(int(alert.body.cget("height")), 4)
+        self.assertGreater(alert.body.winfo_height(), normal_height)
+        self.assertFalse(alert.scrollbar.winfo_ismapped())
+        message = "可以选择和复制的中文说明。\n" * 50
+        alert.set_message(message)
+        self.root.update()
+        alert.body.yview_moveto(.5)
+        alert.body.tag_add("sel", "20.0", "20.5")
+        self.root.update()
+        position, selection = alert.body.yview(), alert.body.tag_ranges("sel")
+        alert.apply_palette(apply_theme(self.root, "dark", font_scale=1.5))
+        self.root.update()
+        self.assertEqual(alert.body.yview(), position)
+        self.assertEqual(alert.body.tag_ranges("sel"), selection)
+        self.assertEqual(alert.body.get("sel.first", "sel.last"), message.splitlines()[19][:5])
+
+    def test_inline_alert_destroy_cancels_pending_measurement(self):
+        self.root.update()
+        baseline = set(self.root.tk.call("after", "info"))
+        alert = InlineAlert(self.root, palette=self.palette, message="等待布局")
+        self.assertIsNotNone(alert._fit_id)
+        alert.destroy()
+        self.root.update()
+        self.assertIsNone(alert._fit_id)
+        self.assertEqual(set(self.root.tk.call("after", "info")), baseline)
 
     def test_empty_state_reasons_actions_and_theme_preserve_state(self):
         calls = []

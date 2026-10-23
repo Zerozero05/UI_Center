@@ -70,7 +70,7 @@ class _Overlay:
         window.transient(self.master.winfo_toplevel())
         if not decorated:
             window.overrideredirect(True)
-        self._bordered = not decorated
+        self._bordered = True
         window.protocol("WM_DELETE_WINDOW", lambda: self.close("window"))
         window.bind("<Destroy>", self._window_destroyed, add="+")
         self.content = ttk.Frame(window, padding=16)
@@ -138,7 +138,7 @@ class _Overlay:
         options = {"text": text, "justify": "left", "anchor": "w", "wraplength": 420}
         label = (ttk.Label(self.content, style="UIC.Heading.TLabel", **options) if heading
                  else tk.Label(self.content, font="TkDefaultFont", **options))
-        label.pack(fill="x", pady=(0, 12))
+        label.pack(fill="x", pady=(0, 16))
         label.bind("<Configure>", lambda event: label.configure(wraplength=max(100, event.width - 4)))
         self._colors.append(label)
         self.apply_palette(self.palette)
@@ -307,7 +307,7 @@ class Drawer(_Overlay):
         self._label(self.message)
         self._build_content(self.content_factory)
         self.close_button = ttk.Button(self.content, text="关闭面板", command=self.close)
-        self.close_button.pack(side="bottom", anchor="e", pady=(12, 0))
+        self.close_button.pack(side="bottom", anchor="e", pady=(16, 0))
         owner = self.master.winfo_toplevel()
         owner.update_idletasks()
         width = min(self.width, max(160, owner.winfo_width()))
@@ -419,7 +419,7 @@ class Tooltip(_Overlay):
         if not self._create(trigger or self.master, modal=False, decorated=False, interactive=False):
             return False
         self._label(self.text)
-        self.content.configure(padding=8)
+        self._colors[-1].pack_configure(pady=0)
         self.window.attributes("-topmost", True)
         x = self.master.winfo_rootx()
         y = self.master.winfo_rooty() + self.master.winfo_height() + 4

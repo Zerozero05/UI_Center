@@ -38,7 +38,7 @@ COMPONENTS = {
 
 
 def work_directory(prefix):
-    parent = ROOT / "work" / "v1.2.2" / "workbench"
+    parent = ROOT / "work" / "v1.2.3" / "workbench"
     parent.mkdir(parents=True, exist_ok=True)
     return Path(tempfile.mkdtemp(prefix=prefix, dir=parent))
 
@@ -318,8 +318,8 @@ class WorkbenchIntegrationTests(unittest.TestCase):
         self.assertIn("保留原业务", self.root.clipboard_get())
         self.app.tabs.select(self.app.preview_surface)
         self.update()
-        self.assertTrue(self.app.preview_surface.reset_button.winfo_ismapped())
-        self.app.preview_surface.reset_button.invoke()
+        self.assertTrue(self.app.live_view.reset_button.winfo_ismapped())
+        self.app.live_view.reset_button.invoke()
         self.assertIs(self.app.live_view, view)
         self.app.copy_usage()
         self.assertNotIn("当前独有参数", self.root.clipboard_get())
@@ -622,7 +622,7 @@ class WorkbenchIntegrationTests(unittest.TestCase):
                     self.update()
                     for widget in (self.app.copy_ai_button, self.app.copy_usage_button,
                                    self.app.preview_button, self.app.source_button, self.app.status_label,
-                                   self.app.preview_surface.reset_button):
+                                   self.app.live_view.reset_button):
                         self.assert_inside_root(widget)
                     surface = self.app.preview_surface
                     region = tuple(float(value) for value in surface.canvas.cget("scrollregion").split())

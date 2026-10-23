@@ -25,29 +25,62 @@ class InlineAlert(tk.Frame):
                  action_text="处理", on_action=None, **kwargs):
         super().__init__(master, highlightthickness=1, padx=12, pady=10, **kwargs)
         self.palette = palette
+        self._fit_id = None
+        self._body_width = None
         self.columnconfigure(0, weight=1)
         self.title_label = tk.Label(self, anchor="w", justify="left", font="TkDefaultFont")
         self.title_label.grid(row=0, column=0, sticky="ew", pady=(0, 4))
         box = tk.Frame(self, borderwidth=0)
         box.grid(row=1, column=0, sticky="nsew")
-        self.body = tk.Text(box, height=4, width=1, wrap="word", font="TkDefaultFont",
+        box.columnconfigure(0, weight=1)
+        self.body = tk.Text(box, height=1, width=1, wrap="word", font="TkDefaultFont",
                             borderwidth=0, highlightthickness=1, takefocus=True, undo=False)
         self.body.bind("<Tab>", lambda event: self._move_focus(False))
         self.body.bind("<Shift-Tab>", lambda event: self._move_focus(True))
         self.scrollbar = ttk.Scrollbar(box, command=self.body.yview)
         self.body.configure(yscrollcommand=self.scrollbar.set)
-        self.scrollbar.pack(side="right", fill="y")
-        self.body.pack(side="left", fill="both", expand=True)
+        self.body.grid(row=0, column=0, sticky="nsew")
+        self.body.bind("<Configure>", self._body_resized)
         self.action = None
         if on_action is not None:
             self.action = ttk.Button(self, text=action_text, command=on_action, takefocus=True)
             self.action.grid(row=2, column=0, sticky="w", pady=(8, 0))
         self.bind("<Configure>", self._wrap)
+        self.bind("<Destroy>", self._on_destroy, add="+")
         self.set_message(message, kind=kind, title=title)
 
     def _wrap(self, event):
         if event.widget is self:
             self.title_label.configure(wraplength=max(60, event.width - 30))
+
+    def _body_resized(self, event):
+        if event.width != self._body_width:
+            self._body_width = event.width
+            self._schedule_fit()
+
+    def _schedule_fit(self):
+        if self._fit_id is None:
+            self._fit_id = self.after_idle(self._fit_body)
+
+    def _fit_body(self):
+        self._fit_id = None
+        if self.body.winfo_width() <= 2:
+            return
+        lines = int(self.body.tk.call(self.body._w, "count", "-update", "-displaylines",
+                                      "1.0", "end-1c")) + 1
+        height = min(4, max(1, lines))
+        if int(self.body.cget("height")) != height:
+            self.body.configure(height=height)
+        if lines > 4:
+            if not self.scrollbar.winfo_manager():
+                self.scrollbar.grid(row=0, column=1, sticky="ns")
+        elif self.scrollbar.winfo_manager():
+            self.scrollbar.grid_remove()
+
+    def _on_destroy(self, event):
+        if event.widget is self and self._fit_id is not None:
+            self.after_cancel(self._fit_id)
+            self._fit_id = None
 
     def _move_focus(self, previous):
         target = self.body.tk_focusPrev() if previous else self.body.tk_focusNext()
@@ -79,7 +112,8 @@ class InlineAlert(tk.Frame):
                             selectbackground=palette["selected_background"],
                             selectforeground=palette["selected_foreground"],
                             inactiveselectbackground=palette["selected_background"],
-                            highlightbackground=palette["border"], highlightcolor=palette["focus"])
+                            highlightbackground=palette["surface"], highlightcolor=palette["focus"])
+        self._schedule_fit()
 
 
 class Toast(tk.Frame):

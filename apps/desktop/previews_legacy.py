@@ -22,12 +22,9 @@ class ThemePreview(PreviewView):
         self.input_text = tk.StringVar(self, value="主题切换保留输入")
         self.disabled = tk.BooleanVar(self, value=False)
         self.feedback = tk.StringVar(self, value="可使用Tab切换焦点，空格触发按钮。")
-        ttk.Label(self.controls, text="标题").grid(row=0, column=0, padx=(0, 6))
-        title_entry = ttk.Entry(self.controls, textvariable=self.title, width=22)
-        title_entry.grid(row=0, column=1, sticky="w")
-        title_entry.bind("<KeyRelease>", lambda event: self.heading.configure(text=self.title.get()))
-        ttk.Checkbutton(self.controls, text="禁用主按钮", variable=self.disabled,
-                        command=self._state).grid(row=1, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        self.form.entry("标题", self.title, width=22, command=lambda: self.heading.configure(text=self.title.get()))
+        self.disabled_choice = self.form.choice("主按钮", self.disabled, ((False, "启用"), (True, "禁用")),
+                                                command=self._state)
         self.stage.columnconfigure(0, weight=1)
         self.heading = ttk.Label(self.stage, text=self.title.get(), style="UIC.Heading.TLabel")
         self.heading.grid(row=0, column=0, sticky="w", pady=(12, 16))
@@ -75,13 +72,11 @@ class ActionsPreview(PreviewView):
         self.busy, self.cancelling = False, False
         self.completed, self.total = 0, 0
         self.detail = tk.StringVar(self, value="点击开始，观察主动作、重置与取消的状态。")
-        ttk.Label(self.controls, text="主按钮").grid(row=0, column=0, padx=(0, 6))
-        entry = ttk.Entry(self.controls, textvariable=self.primary_text, width=18)
-        entry.grid(row=0, column=1, sticky="w")
-        entry.bind("<KeyRelease>", lambda event: self.actions.primary.configure(text=self.primary_text.get()))
-        ttk.Label(self.controls, text="模拟数量").grid(row=1, column=0, padx=(0, 6), pady=(8, 0))
-        ttk.Combobox(self.controls, textvariable=self.amount, values=("4", "8", "12"),
-                     width=8, state="readonly").grid(row=1, column=1, sticky="w", pady=(8, 0))
+        self.form.entry("主按钮", self.primary_text, width=18,
+                        command=lambda: self.actions.primary.configure(text=self.primary_text.get()))
+        self.form.combo("模拟数量", self.amount, tuple((value, value + " 项") for value in ("4", "8", "12")))
+        self.reset_button.grid_remove()
+        self.actions.grid_remove()
         self.stage.columnconfigure(0, weight=1)
         self.actions = self.register(ActionBar(self.stage, on_primary=self.start,
                                                on_cancel=self.cancel, on_secondary=self.reset,
@@ -156,19 +151,15 @@ class TaskPreview(PreviewView):
         self.completed, self.total = 0, 0
         self.rows = []
         self._outcome = "成功"
-        parameters = ttk.Frame(self.controls)
-        parameters.grid(row=0, column=0, sticky="w")
-        ttk.Label(parameters, text="数量").grid(row=0, column=0)
-        ttk.Combobox(parameters, textvariable=self.amount, values=("4", "8", "12"),
-                     state="readonly", width=7).grid(row=0, column=1, padx=6)
-        ttk.Label(parameters, text="结果").grid(row=0, column=2)
-        ttk.Combobox(parameters, textvariable=self.outcome, values=("成功", "失败"),
-                     state="readonly", width=7).grid(row=0, column=3, padx=6)
-        self.actions = self.register(ActionBar(self.controls, on_primary=self.start,
+        self.form.combo("数量", self.amount, tuple((value, value + " 项") for value in ("4", "8", "12")))
+        self.form.choice("结果", self.outcome, (("成功", "成功"), ("失败", "失败")))
+        action_row = self.actions
+        self.reset_button.grid_remove()
+        action_row.columnconfigure(0, weight=1)
+        self.actions = self.register(ActionBar(action_row, on_primary=self.start,
                                                on_cancel=self.cancel, on_secondary=self.reset,
                                                spacing=spacing))
-        self.actions.grid(row=1, column=0, sticky="ew", pady=(8, 0))
-        self.controls.columnconfigure(0, weight=1)
+        self.actions.grid(row=0, column=0, columnspan=100, sticky="ew")
         self.stage.columnconfigure(0, weight=1)
         self.stage.rowconfigure(0, weight=1)
         self.panel = self.register(TaskPanel(self.stage, spacing=spacing))

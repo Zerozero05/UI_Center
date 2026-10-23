@@ -92,3 +92,9 @@ v1.2.0 的18个新组件由本项目直接使用 Python 标准库 Tk/ttk/Canvas 
 - Python/Tk、Android SDK、构建工具各有自己的许可；源码示例没有把这些环境的软件二进制打包进仓库。上表的方法参考项目不能据此被误列为运行依赖。
 - 后续实质复制或改编外部代码/资源时，先核对具体文件、固定版本与许可，更新本记录及第三方声明，保留原有版权/许可/NOTICE 和必要的修改说明。
 - 新增平台先复用规范与 tokens，再按该平台实现；共享设计值不代表 Tkinter、Android Views 与 Web 组件实现可以直接互换。
+
+## v1.2.3 界面方法参考（2026-10-24）
+
+- [Microsoft：Content layout and spacing](https://learn.microsoft.com/en-us/windows/apps/design/basics/content-basics)：采用一致间距、文字层级和控件分组方法，映射到既有4/8/12/16/24参数。
+- [Microsoft：Buttons](https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/buttons)：参考明确操作/状态文案及空间不足时调整排列的建议。文字分段为用户已选方案，并非宣称全部Windows二元设置都应采用此形式。
+- 上述仅为设计方法参考，界面适配代码由本项目自行实现；未复制WinUI源码、图标、字体或资源，未引入WinUI或新依赖。既有来源与AGPL许可保持。

@@ -8,13 +8,33 @@ from tkinter import ttk
 
 
 def _choice_colors(button, palette, selected=False):
-    foreground = palette["selected_foreground"] if selected else palette["foreground"]
-    button.configure(background=palette["surface"], foreground=foreground,
-                     activebackground=palette["selected_background"] if selected else palette["hover"],
+    disabled = button.cget("state") == "disabled"
+    if disabled:
+        button._ui_center_hovered = False
+    selected = selected and not disabled
+    background = (palette["selected_background"] if selected else
+                  palette["hover"] if button._ui_center_hovered else palette["surface"])
+    foreground = (palette["disabled"] if disabled else
+                  palette["selected_foreground"] if selected else palette["foreground"])
+    button.configure(background=background, foreground=foreground,
+                     activebackground=palette["selected_background"] if selected else
+                     palette["surface"] if disabled else palette["hover"],
                      activeforeground=foreground,
-                     selectcolor=palette["selected_background"],
                      disabledforeground=palette["disabled"],
                      highlightbackground=palette["border"], highlightcolor=palette["focus"])
+    if isinstance(button, tk.Radiobutton):
+        button.configure(selectcolor=palette["surface"] if disabled else palette["selected_background"])
+
+
+def _bind_choice_hover(button, repaint):
+    button._ui_center_hovered = False
+
+    def set_hover(hovered):
+        button._ui_center_hovered = hovered and button.cget("state") != "disabled"
+        repaint()
+
+    button.bind("<Enter>", lambda event: set_hover(True), add="+")
+    button.bind("<Leave>", lambda event: set_hover(False), add="+")
 
 
 class Tabs(ttk.Frame):
@@ -46,13 +66,15 @@ class Tabs(ttk.Frame):
         page = ttk.Frame(self.content, padding=8)
         button = tk.Radiobutton(self.header, text=text, value=key, variable=self._value,
                                 indicatoron=False, command=lambda: self.select(key),
-                                font="TkDefaultFont", padx=8, pady=8, borderwidth=1,
-                                highlightthickness=2, wraplength=160, takefocus=False,
+                                font="TkDefaultFont", padx=8, pady=8, borderwidth=0,
+                                relief="flat", offrelief="flat", overrelief="flat",
+                                highlightthickness=1, wraplength=160, takefocus=False,
                                 state="disabled" if disabled else "normal")
         index = len(self._pages)
         button.grid(row=0, column=index, sticky="nsew")
         self.header.columnconfigure(index, weight=1, uniform="tabs")
         self._pages[key], self._buttons[key] = page, button
+        _bind_choice_hover(button, lambda: self.apply_palette(self.palette))
         for sequence, direction in (("<Right>", 1), ("<Down>", 1), ("<Left>", -1), ("<Up>", -1)):
             button.bind(sequence, lambda event, step=direction: self._move(step))
         button.bind("<Home>", lambda event: self._move("first"))
@@ -116,6 +138,7 @@ class Tabs(ttk.Frame):
                     break
         elif not disabled and self._selected is None:
             self.select(key)
+        self.apply_palette(self.palette)
 
     def set_text(self, key, text):
         self._buttons[key].configure(text=text)
@@ -148,10 +171,12 @@ class Accordion(ttk.Frame):
         button = tk.Button(self, text="▸ " + text, anchor="w", font="TkDefaultFont",
                            command=lambda: self.toggle(key), takefocus=not disabled,
                            state="disabled" if disabled else "normal", padx=10, pady=8,
-                           relief="flat", borderwidth=1, highlightthickness=2, wraplength=300)
+                           relief="flat", overrelief="flat", borderwidth=0,
+                           highlightthickness=1, wraplength=300)
         button.grid(row=index, column=0, sticky="ew", pady=(0, 4))
         body = ttk.Frame(self, padding=(14, 4, 8, 12))
         self._sections[key], self._buttons[key], self._titles[key] = body, button, text
+        _bind_choice_hover(button, lambda: self.apply_palette(self.palette))
         for sequence, direction in (("<Down>", 1), ("<Up>", -1), ("<Home>", "first"), ("<End>", "last")):
             button.bind(sequence, lambda event, step=direction, item=key: self._move(item, step))
         button.bind("<Right>", lambda event, item=key: self._key_expand(item, True))
@@ -210,6 +235,7 @@ class Accordion(ttk.Frame):
                 body.grid(row=index * 2 + 1, column=0, sticky="ew")
             else:
                 body.grid_remove()
+        self.apply_palette(self.palette)
 
     def set_multiple(self, multiple):
         self.multiple = bool(multiple)
@@ -225,11 +251,8 @@ class Accordion(ttk.Frame):
 
     def apply_palette(self, palette):
         self.palette = palette
-        for button in self._buttons.values():
-            button.configure(background=palette["surface"], foreground=palette["foreground"],
-                             activebackground=palette["hover"], activeforeground=palette["foreground"],
-                             disabledforeground=palette["disabled"],
-                             highlightbackground=palette["border"], highlightcolor=palette["focus"])
+        for key, button in self._buttons.items():
+            _choice_colors(button, palette, key in self._expanded)
 
 
 class SegmentedControl(ttk.Frame):
@@ -248,11 +271,13 @@ class SegmentedControl(ttk.Frame):
             button = tk.Radiobutton(self, text=text, value=key, variable=self._value,
                                     command=lambda item=key: self.select(item), indicatoron=False,
                                     takefocus=False, font="TkDefaultFont", padx=8, pady=8,
-                                    highlightthickness=2, borderwidth=1, wraplength=140,
+                                    highlightthickness=1, borderwidth=0, relief="flat",
+                                    offrelief="flat", overrelief="flat", wraplength=140,
                                     state="disabled" if key in disabled else "normal")
             button.grid(row=0, column=index, sticky="nsew")
             self.columnconfigure(index, weight=1, uniform="segments")
             self._buttons[key] = button
+            _bind_choice_hover(button, lambda: self.apply_palette(self.palette))
             for sequence, direction in (("<Right>", 1), ("<Down>", 1), ("<Left>", -1), ("<Up>", -1), ("<Home>", "first"), ("<End>", "last")):
                 button.bind(sequence, lambda event, step=direction: self._move(step))
             button.bind("<Return>", lambda event, item=key: self._activate_key(item))
@@ -314,6 +339,7 @@ class SegmentedControl(ttk.Frame):
                     break
         elif not disabled and self._selected is None:
             self.select(value)
+        self.apply_palette(self.palette)
 
     def apply_palette(self, palette):
         self.palette = palette

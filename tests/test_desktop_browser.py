@@ -23,7 +23,7 @@ from ui_center.feedback import EmptyState
 
 
 def work_directory(prefix):
-    parent = ROOT / "work" / "v1.2.2" / "browser"
+    parent = ROOT / "work" / "v1.2.3" / "browser"
     parent.mkdir(parents=True, exist_ok=True)
     return Path(tempfile.mkdtemp(prefix=prefix, dir=parent))
 
@@ -138,7 +138,7 @@ class BrowserWidgetTests(unittest.TestCase):
         self.app.description.text.insert("1.0", "UNAUTHORIZED EDIT")
         self.assertEqual(self.app.description.text.get("1.0", "end-1c"), original)
         self.app.copy_usage()
-        self.assertEqual(self.root.clipboard_get(), usage_for(self.app.store, self.app.current))
+        self.assertEqual(self.root.clipboard_get(), self.app.live_view.code())
         self.app.copy_ai()
         copied = self.root.clipboard_get()
         self.assertIn(self.app.store.commit, copied)

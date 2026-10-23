@@ -4,6 +4,8 @@
 
 共同接口：构造器必须传 `palette=apply_theme(...)` 的返回值；`show(trigger=None)` 返回是否成功打开，重复打开会抬升原窗口并返回 `False`；`is_open` 表示是否存在当前 Toplevel；`close(reason="close")` 关闭；`apply_palette(palette)` 原位更新普通 Tk 内容；`set_visible(False)` 关闭并禁止再次打开，恢复 `True` 后需明确 `show()`；`dispose()` 永久停止并解绑本组件。主题切换时同时调用应用的 `apply_theme()` 和组件的 `apply_palette()`，不会重建当前弹层。
 
+视觉约定：五类弹层使用16像素内留白及1像素主题细框，标题、正文与操作区保持清楚间隔；交互按钮保留可见键盘焦点。工具提示仍为非交互内容，不抢焦点。工作台参数按空间自动换行，抽屉方向、模态使用相邻中文文字选项，并提供一个统一“重置”；这些预览改进不改变下述源码参数和回调。
+
 `on_close(reason)` 仅在组件的关闭路径调用，常见原因有 `close`、`escape`、`window`、`hidden`、`disposed`。直接从外部销毁 Toplevel 仍会释放内部状态，但不代替调用业务回调。隐藏和销毁均会取消本组件计时器，只释放本组件拥有的 grab；关闭模态子弹层时恢复仍存在的前一个 grab。已有其他模态窗口时，不抢占它；只有从该模态窗口内部的明确触发控件发起，才允许嵌套。
 
 宿主若也使用 Escape（例如清空搜索），应先调用 `close_active_overlay(root)`，返回 `True` 时结束该快捷键处理。组件不调用 `bind_all` / `unbind_all`，不会移除宿主的其他绑定。`active_overlay(root)` 可查询同一 Tk 解释器中最近打开的交互弹层；Tooltip 不参与该栈。
@@ -84,16 +86,18 @@ import tkinter as tk
 from tkinter import ttk
 from ui_center.theme import apply_theme
 from ui_center.overlays import Drawer
+from ui_center.navigation import SegmentedControl
 
 root = tk.Tk()
 root.title("Drawer 示例")
 root.geometry("620x420")
 palette = apply_theme(root, tokens_path=Path(__file__).parent / "tokens" / "design-tokens.json")
-choice = tk.BooleanVar(root, value=False)
+choice = tk.StringVar(root, value="off")
 drawer = Drawer(root, palette=palette, title="辅助选项", message="这里的选择由调用方维护。",
                 side="right", modal=True, reduced_motion=True,
-                content_factory=lambda content: ttk.Checkbutton(
-                    content, text="示例选项", variable=choice).pack(anchor="w"))
+                content_factory=lambda content: SegmentedControl(
+                    content, palette=palette, options=(("on", "开启"), ("off", "关闭")),
+                    value=choice.get(), on_change=choice.set).pack(anchor="w"))
 trigger = ttk.Button(root, text="打开抽屉", command=lambda: drawer.show(trigger))
 trigger.pack(pady=40)
 root.protocol("WM_DELETE_WINDOW", lambda: (drawer.dispose(), root.destroy()))

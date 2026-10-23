@@ -13,6 +13,19 @@ from .preview_base import PreviewView, example_code
 
 IDS = ("tabs", "accordion", "segmented-control", "inline-alert", "toast", "empty-state")
 _LONG = "项目设置与很长的中文标签仍然完整换行显示"
+_LENGTHS = ((False, "常规"), (True, "长文本"))
+_AVAILABILITY = ((False, "可用"), (True, "禁用"))
+_KINDS = (("info", "提示"), ("success", "成功"), ("warning", "警告"), ("error", "错误"))
+_PAGES = {"overview": "概览", "settings": "项目设置", "history": "历史记录"}
+_SECTIONS = {"general": "通用设置", "advanced": "高级选项", "help": "使用说明"}
+_SEGMENTS = (("day", "日"), ("week", "周"), ("year", "年度"))
+_EMPTY_STATES = (("first-use", "首次使用"), ("no-results", "无搜索结果"), ("no-data", "暂无数据"))
+_ALERT_MESSAGES = {"info": "设置尚未保存。确认内容后再继续。",
+                   "success": "设置已保存，可以继续下一步。",
+                   "warning": "部分设置尚未确认，请检查后再继续。",
+                   "error": "设置保存失败。请检查输入后重试。"}
+_TOAST_MESSAGES = {"info": "演示设置尚未保存。", "success": "演示设置已保存。",
+                   "warning": "演示设置需要确认。", "error": "演示设置保存失败。"}
 
 
 class NavigationFeedbackPreview(PreviewView):
@@ -34,28 +47,13 @@ class NavigationFeedbackPreview(PreviewView):
         else:
             self._build_empty()
 
-    def _combo(self, column, title, variable, values, callback):
-        self.controls.columnconfigure(column, weight=1, uniform="parameters")
-        ttk.Label(self.controls, text=title).grid(row=0, column=column, sticky="w", padx=(0, 8))
-        combo = ttk.Combobox(self.controls, textvariable=variable, values=values,
-                             state="readonly", width=12, takefocus=True)
-        combo.grid(row=1, column=column, sticky="ew", padx=(0, 8))
-        combo.bind("<<ComboboxSelected>>", callback)
-        return combo
-
-    def _check(self, column, title, variable, callback):
-        self.controls.columnconfigure(column, weight=1, uniform="parameters")
-        ttk.Label(self.controls, text=title).grid(row=0, column=column, sticky="w", padx=(0, 8))
-        ttk.Checkbutton(self.controls, text="启用", variable=variable, command=callback,
-                        takefocus=True).grid(row=1, column=column, sticky="w")
-
     def _build_tabs(self):
         self.long_text = tk.BooleanVar(self, False)
         self.disabled = tk.BooleanVar(self, True)
-        self._check(0, "长中文标签", self.long_text, self._update_tabs)
-        self._check(1, "禁用第三页", self.disabled, self._update_tabs)
+        self.long_choice = self.form.choice("标签长度", self.long_text, _LENGTHS, command=self._update_tabs)
+        self.disabled_choice = self.form.choice("第三页", self.disabled, _AVAILABILITY, command=self._update_tabs)
         self.widget = self.register(Tabs(self.stage, palette=self.palette,
-                                        on_change=lambda key: self.message.set("已切换到：" + key)))
+                                        on_change=lambda key: self.message.set("已切换到：" + _PAGES[key])))
         self.widget.grid(row=0, column=0, sticky="nsew")
         for key, title in (("overview", "概览"), ("settings", "项目设置"), ("history", "历史记录")):
             page = self.widget.add(key, text=title, disabled=key == "history")
@@ -72,10 +70,11 @@ class NavigationFeedbackPreview(PreviewView):
     def _build_accordion(self):
         self.mode = tk.StringVar(self, "单项展开")
         self.long_text = tk.BooleanVar(self, False)
-        self._combo(0, "展开方式", self.mode, ("单项展开", "多项展开"), self._update_accordion)
-        self._check(1, "长中文标题", self.long_text, self._update_accordion)
+        self.mode_choice = self.form.choice("展开方式", self.mode,
+            (("单项展开", "单项展开"), ("多项展开", "多项展开")), command=self._update_accordion)
+        self.long_choice = self.form.choice("标题长度", self.long_text, _LENGTHS, command=self._update_accordion)
         self.widget = self.register(Accordion(self.stage, palette=self.palette,
-            on_change=lambda keys: self.message.set("展开：" + ("、".join(keys) or "无"))))
+            on_change=lambda keys: self.message.set("已展开：" + ("、".join(_SECTIONS[key] for key in keys) or "无"))))
         self.widget.grid(row=0, column=0, sticky="new")
         for key, text in (("general", "通用设置"), ("advanced", "高级选项"), ("help", "使用说明")):
             body = self.widget.add(key, text=text, expanded=key == "general")
@@ -91,9 +90,10 @@ class NavigationFeedbackPreview(PreviewView):
 
     def _build_segments(self):
         self.disabled = tk.BooleanVar(self, True)
-        self._check(0, "禁用年度选项", self.disabled, self._update_segments)
+        self.disabled_choice = self.form.choice("年度选项", self.disabled, _AVAILABILITY,
+                                               command=self._update_segments)
         self.current = tk.StringVar(self, "week")
-        self._combo(1, "当前值", self.current, ("day", "week", "year"), self._update_segments)
+        self.current_combo = self.form.combo("当前值", self.current, _SEGMENTS, command=self._update_segments)
         self.widget = self.register(SegmentedControl(self.stage, palette=self.palette,
             options=(("day", "日"), ("week", "周"), ("year", "年度")), value="week",
             disabled=("year",), on_change=self._segment_changed))
@@ -102,7 +102,7 @@ class NavigationFeedbackPreview(PreviewView):
 
     def _segment_changed(self, key):
         self.current.set(key)
-        self.message.set("调用方收到选择回调：" + key)
+        self.message.set("已选择：" + dict(_SEGMENTS)[key])
 
     def _update_segments(self, _event=None):
         self.widget.set_disabled("year", self.disabled.get())
@@ -113,8 +113,9 @@ class NavigationFeedbackPreview(PreviewView):
     def _build_alert(self):
         self.kind = tk.StringVar(self, "info")
         self.long_text = tk.BooleanVar(self, False)
-        self._combo(0, "语义状态", self.kind, ("info", "success", "warning", "error"), self._update_alert)
-        self._check(1, "长错误说明", self.long_text, self._update_alert)
+        self.kind_combo = self.form.combo("语义状态", self.kind, _KINDS, command=self._update_alert)
+        self.long_choice = self.form.choice("内容长度", self.long_text,
+            ((False, "简短"), (True, "长文本")), command=self._update_alert)
         self.widget = self.register(InlineAlert(self.stage, palette=self.palette, kind="info",
             message="设置尚未保存。确认内容后再继续。", action_text="查看下一步",
             on_action=lambda: self.message.set("调用方处理“查看下一步”；提示仍持续显示。")))
@@ -122,8 +123,9 @@ class NavigationFeedbackPreview(PreviewView):
         self.message.set("消息持续显示，可聚焦、选择复制并滚动；重要错误可保留在这里。")
 
     def _alert_message(self):
-        return ("说明：请检查输入与网络状态，已填写的数据会保留。\n" * 12
-                if self.long_text.get() else "设置尚未保存。确认内容后再继续。")
+        message = _ALERT_MESSAGES[self.kind.get()]
+        return (message + "\n" + "补充说明：当前提示会持续显示，你可以选择复制，并在处理后返回此处。\n" * 12
+                if self.long_text.get() else message)
 
     def _update_alert(self, _event=None):
         self.widget.set_message(self._alert_message(), kind=self.kind.get())
@@ -131,27 +133,27 @@ class NavigationFeedbackPreview(PreviewView):
     def _build_toast(self):
         self.kind = tk.StringVar(self, "success")
         self.duration = tk.StringVar(self, "4000")
-        self._combo(0, "语义状态", self.kind, ("info", "success", "warning", "error"), lambda e: None)
-        self._combo(1, "关闭时间(ms)", self.duration, ("1500", "4000", "0"), lambda e: None)
-        ttk.Label(self.controls, text="再次触发").grid(row=0, column=2, sticky="w")
-        ttk.Button(self.controls, text="显示提示", command=self._show_toast,
-                   takefocus=True).grid(row=1, column=2, sticky="ew")
-        self.controls.columnconfigure(2, weight=1, uniform="parameters")
+        self.kind_combo = self.form.combo("语义状态", self.kind, _KINDS, command=self._show_toast)
+        self.duration_combo = self.form.combo("关闭方式", self.duration,
+            (("1500", "1.5 秒后"), ("4000", "4 秒后"), ("0", "手动关闭")), command=self._show_toast)
+        self.show_button = ttk.Button(self.actions, text="显示提示", command=self._show_toast, takefocus=True)
+        self.show_button.grid(row=0, column=0, sticky="w")
         self.widget = self.register(Toast(self.stage, palette=self.palette, message="演示设置已保存。",
             kind="success", duration=4000,
-            on_close=lambda reason: self.message.set("轻提示已关闭：" + reason)))
+            on_close=lambda reason: self.message.set("轻提示已关闭：" + {"manual": "手动关闭", "timeout": "自动关闭"}[reason])))
         self.widget.grid(row=0, column=0, sticky="new")
         self._show_toast()
 
     def _show_toast(self):
-        self.widget.show("演示设置已保存。", kind=self.kind.get(), duration=int(self.duration.get()))
-        self.message.set("悬停或将焦点移入关闭按钮可暂停计时；0 表示手动关闭。重要错误应使用持续提示。")
+        self.widget.show(_TOAST_MESSAGES[self.kind.get()], kind=self.kind.get(), duration=int(self.duration.get()))
+        self.message.set("悬停或将焦点移入关闭按钮可暂停计时；选择“手动关闭”可持续显示。重要错误应使用行内提示。")
 
     def _build_empty(self):
         self.kind = tk.StringVar(self, "first-use")
-        self._combo(0, "空状态原因", self.kind, ("first-use", "no-results", "no-data"), self._update_empty)
+        self.kind_combo = self.form.combo("空状态原因", self.kind, _EMPTY_STATES, command=self._update_empty)
         self.disabled = tk.BooleanVar(self, False)
-        self._check(1, "禁用操作", self.disabled, self._update_empty)
+        self.disabled_choice = self.form.choice("操作按钮", self.disabled, _AVAILABILITY,
+                                               command=self._update_empty)
         self.widget = self.register(EmptyState(self.stage, palette=self.palette,
             on_action=lambda: self.message.set("调用方收到操作：" + self.widget.action_text)))
         self.widget.grid(row=0, column=0, sticky="new")
@@ -191,7 +193,8 @@ class NavigationFeedbackPreview(PreviewView):
 
     def code(self):
         if self.key == "tabs":
-            return example_code("from ui_center.navigation import Tabs", f'''tabs = Tabs(root, palette=palette, on_change=print)
+            return example_code("from ui_center.navigation import Tabs", f'''page_names = {_PAGES!r}
+tabs = Tabs(root, palette=palette, on_change=lambda key: print("已切换到：" + page_names[key]))
 tabs.pack(fill="both", expand=True, padx=12, pady=12)
 for key, text in {[("overview", "概览"), ("settings", _LONG if self.long_text.get() else "项目设置"), ("history", "历史记录")]!r}:
     page = tabs.add(key, text=text, disabled=key == "history" and {self.disabled.get()!r})
@@ -199,24 +202,29 @@ for key, text in {[("overview", "概览"), ("settings", _LONG if self.long_text.
     ttk.Entry(page).pack(fill="x", pady=8)
 tabs.select({self.widget.select()!r})''')
         if self.key == "accordion":
-            return example_code("from ui_center.navigation import Accordion", f'''accordion = Accordion(root, palette=palette, multiple={self.mode.get() == "多项展开"!r}, on_change=print)
+            return example_code("from ui_center.navigation import Accordion", f'''section_names = {_SECTIONS!r}
+accordion = Accordion(root, palette=palette, multiple={self.mode.get() == "多项展开"!r},
+    on_change=lambda keys: print("已展开：" + ("、".join(section_names[key] for key in keys) or "无")))
 accordion.pack(fill="x", padx=12, pady=12)
 for key, text in {[("general", "通用设置"), ("advanced", _LONG if self.long_text.get() else "高级选项"), ("help", "使用说明")]!r}:
     body = accordion.add(key, text=text, expanded=key in {self.widget.expanded!r})
     ttk.Label(body, text="折叠时保留此处输入").pack(anchor="w")
     ttk.Entry(body).pack(fill="x", pady=8)''')
         if self.key == "segmented-control":
-            return example_code("from ui_center.navigation import SegmentedControl", f'''control = SegmentedControl(root, palette=palette,
+            return example_code("from ui_center.navigation import SegmentedControl", f'''option_names = {dict(_SEGMENTS)!r}
+control = SegmentedControl(root, palette=palette,
     options=(("day", "日"), ("week", "周"), ("year", "年度")),
-    value={self.widget.select()!r}, disabled={('year',) if self.disabled.get() else ()!r}, on_change=print)
+    value={self.widget.select()!r}, disabled={('year',) if self.disabled.get() else ()!r},
+    on_change=lambda value: print("已选择：" + option_names[value]))
 control.pack(fill="x", padx=12, pady=12)''')
         if self.key == "inline-alert":
             return example_code("from ui_center.feedback import InlineAlert", f'''alert = InlineAlert(root, palette=palette, kind={self.kind.get()!r},
     message={self._alert_message()!r}, action_text="查看下一步", on_action=lambda: print("查看下一步"))
 alert.pack(fill="x", padx=12, pady=12)''')
         if self.key == "toast":
-            return example_code("from ui_center.feedback import Toast", f'''toast = Toast(root, palette=palette, kind={self.kind.get()!r}, duration={int(self.duration.get())!r},
-    message="演示设置已保存。", on_close=print)
+            return example_code("from ui_center.feedback import Toast", f'''close_reasons = {{"manual": "手动关闭", "timeout": "自动关闭"}}
+toast = Toast(root, palette=palette, kind={self.kind.get()!r}, duration={int(self.duration.get())!r},
+    message={_TOAST_MESSAGES[self.kind.get()]!r}, on_close=lambda reason: print("轻提示已关闭：" + close_reasons[reason]))
 toast.pack(fill="x", padx=12, pady=12)
 ttk.Button(root, text="再次显示", command=lambda: toast.show()).pack()
 toast.show()

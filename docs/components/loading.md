@@ -106,7 +106,7 @@ root.mainloop()
 
 **接入：** 用与最终内容相同的容器和布局位置放置占位。业务完成时停止并 `grid_remove()` / `pack_forget()`，再呈现真实内容。
 
-**工作台预览：** “布局”显示列表／卡片，“脉动效果”显示开启／关闭；代码仍使用 `list/card` 与 `animate`。顶部启用减少动画时局部效果选项禁用，原选择保留，并说明当前为静态占位；选择正常动画后，仍处于运行状态的预览才恢复脉动。停止预览不代表业务完成或取消。
+**工作台预览：** “布局”的列表／卡片、“脉动效果”的开启／关闭均使用相邻文字选项，当前选择直接可见；代码仍使用 `list/card` 与 `animate`。顶部启用减少动画时局部效果选项禁用，原选择保留，并说明当前为静态占位；选择正常动画后，仍处于运行状态的预览才恢复脉动。统一“重置”恢复本组件参数；停止预览不代表业务完成或取消。
 
 **依赖：** Python 标准库 Tk/ttk/Canvas 与项目主题。
 
@@ -137,7 +137,7 @@ root.mainloop()
 
 **接入：** 显式传入用户的动画偏好；离开页面调用 `set_visible(False)`。恢复页面后仍由真实加载状态决定是否继续。
 
-**工作台预览：** “扫光效果”使用开启／关闭文字选项。减少动画时与骨架屏一样显示静态占位，这是预期降级；状态说明会给出原因。关闭局部效果或停止预览后也保留占位，状态文字分别说明，不把等待动画当作真实业务进度。
+**工作台预览：** “扫光效果”使用相邻的开启／关闭文字选项。减少动画时与骨架屏一样显示静态占位，这是预期降级；状态说明会给出原因。关闭局部效果或停止预览后也保留占位，状态文字分别说明，不把等待动画当作真实业务进度。下面独立示例采用已有公开组件 `SegmentedControl`，无需工作台表单辅助代码。
 
 **依赖：** Python标准库Tk/ttk/Canvas及已有主题颜色，不使用图片或额外运行库。
 
@@ -148,6 +148,7 @@ import tkinter as tk
 from tkinter import ttk
 from ui_center.theme import apply_theme
 from ui_center.loading import Shimmer
+from ui_center.navigation import SegmentedControl
 
 root = tk.Tk()
 root.title('可关闭高光')
@@ -158,12 +159,10 @@ placeholder.start()
 controls = ttk.Frame(root)
 controls.pack(pady=12)
 ttk.Label(controls, text='扫光效果').pack(side='left', padx=(0, 8))
-effect = tk.StringVar(root, value='开启')
-picker = ttk.Combobox(controls, textvariable=effect,
-                     values=('开启', '关闭'), state='readonly', width=6)
+picker = SegmentedControl(controls, palette=palette,
+                          options=(('on', '开启'), ('off', '关闭')), value='on',
+                          on_change=lambda value: placeholder.set_enabled(value == 'on'))
 picker.pack(side='left')
-picker.bind('<<ComboboxSelected>>',
-            lambda event: placeholder.set_enabled(effect.get() == '开启'))
 root.mainloop()
 ```
 

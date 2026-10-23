@@ -6,16 +6,17 @@ Build on Windows x64 with the complete CPython Windows distribution (including
 its Python, Windows runtime, and bundled Tcl/Tk license notices).
 The supported runtime target is **Windows 11 x64**.
 
-The v1.2.2 candidate improves skeleton/shimmer previews and linked filters.
+The v1.2.3 candidate unifies Chinese parameter choices and refines the
+workbench layout and existing component presentation.
 It keeps the existing component APIs, profile format, directory layout, license
 collection and pinned build toolchain.
 Source inputs resolve relative to the repository root, so moving the complete
 source checkout does not require replacing it with a machine-specific path.
 
 ```console
-python scripts/build_desktop.py --check-only --version 1.2.2
-python scripts/build_desktop.py --output-dir work/v1.2.2/desktop-dist --version 1.2.2
-python scripts/verify_desktop_package.py --portable-zip work/v1.2.2/desktop-dist/UI_Center_v1.2.2_Windows_x64_Portable.zip --single-exe work/v1.2.2/desktop-dist/UI_Center_v1.2.2_Windows_x64.exe --version 1.2.2 --source-commit FULL_GIT_SHA --report work/v1.2.2/desktop-dist/package-verification.json
+python scripts/build_desktop.py --check-only --version 1.2.3
+python scripts/build_desktop.py --output-dir work/v1.2.3/desktop-dist --version 1.2.3
+python scripts/verify_desktop_package.py --portable-zip work/v1.2.3/desktop-dist/UI_Center_v1.2.3_Windows_x64_Portable.zip --single-exe work/v1.2.3/desktop-dist/UI_Center_v1.2.3_Windows_x64.exe --version 1.2.3 --source-commit FULL_GIT_SHA --report work/v1.2.3/desktop-dist/package-verification.json
 ```
 
 The first command is read-only and does not require PyInstaller. A real build
@@ -23,8 +24,8 @@ requires all application/build inputs to match the declared Git commit. The
 commit comes from `--source-commit`, `UI_CENTER_SOURCE_COMMIT`, `GITHUB_SHA`, or
 the local Git HEAD, in that order. Existing output assets are never overwritten.
 Without `--output-dir`, builds use `work/v<VERSION>/desktop-dist` under the
-source root. v1.2.2 CI keeps its runtime, smoke, release and failure evidence
-under `work/v1.2.2`, separate from prior versions. Both successful runtime
+source root. v1.2.3 CI keeps its runtime, smoke, release and failure evidence
+under `work/v1.2.3`, separate from prior versions. Both successful runtime
 artifacts and failed-build diagnostics are retained by Actions for seven days.
 
 The portable ZIP has `UI_Center.exe` and `_internal/` at its root. The standalone
@@ -94,12 +95,12 @@ Implementation references: [PyInstaller usage](https://pyinstaller.org/en/stable
 and [entry-point-relative resources](https://pyinstaller.org/en/stable/runtime-information.html#using-file).
 These are tool/API references; no upstream packaging implementation was copied.
 
-Publication is restricted to `refs/tags/v1.2.2` in the release workflow. Updating
+Publication is restricted to `refs/tags/v1.2.3` in the release workflow. Updating
 the version or building a candidate does not create that tag or publish a release;
 the user must first approve this version's concrete candidate and attachments.
 Older tags and published assets remain unchanged.
 
-For a reviewed v1.2.2 release, the annotated tag contains one `Candidate-Run: N`
+For a reviewed v1.2.3 release, the annotated tag contains one `Candidate-Run: N`
 line naming the successful same-commit CI run, and `Portable-SHA256:` /
 `Single-SHA256:` lines binding the exact reviewed binary hashes. The release job
 requires an actual annotated tag, checks the downloaded bytes and that run's

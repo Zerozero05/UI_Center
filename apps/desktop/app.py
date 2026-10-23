@@ -1,7 +1,7 @@
 """Offline component workbench, Chinese guidance and source adoption."""
 import os
 import tkinter as tk
-from tkinter import ttk
+from tkinter import font as tkfont, ttk
 import webbrowser
 
 from ui_center import apply_theme, load_tokens
@@ -14,6 +14,8 @@ from .catalog import (ENTRIES, PLATFORMS, SCENES, SECTIONS, adoption_note, avail
 from .preferences import Preferences, THEMES, MOTIONS, program_directory, reduced_motion
 from .previews import create_preview
 from .reader import DocumentReader
+from .parameters import ParameterForm
+from .scrolling import AutoScrollbar
 
 
 def work_area(root):
@@ -41,24 +43,33 @@ def work_area(root):
 
 class PreviewSurface(ttk.Frame):
     """Scrollable controls stay reachable at large font sizes."""
-    def __init__(self, master, *, on_reset=None):
+    def __init__(self, master):
         super().__init__(master)
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.reset_button = ttk.Button(self, text="重置此组件", command=on_reset)
-        self.reset_button.grid(row=0, column=0, sticky="e", pady=(2, 4))
+        self.rowconfigure(0, weight=1)
         self.canvas = tk.Canvas(self, highlightthickness=0, width=400, height=240)
-        self.canvas.grid(row=1, column=0, sticky="nsew")
-        vertical = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
-        vertical.grid(row=1, column=1, sticky="ns")
-        horizontal = ttk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
-        horizontal.grid(row=2, column=0, sticky="ew")
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.vertical = vertical = AutoScrollbar(self, orient="vertical", command=self.canvas.yview)
+        vertical.grid(row=0, column=1, sticky="ns")
+        self.horizontal = horizontal = AutoScrollbar(self, orient="horizontal", command=self.canvas.xview)
+        horizontal.grid(row=1, column=0, sticky="ew")
         self.canvas.configure(yscrollcommand=vertical.set, xscrollcommand=horizontal.set)
         self.host = ttk.Frame(self.canvas)
         self.window = self.canvas.create_window(0, 0, window=self.host, anchor="nw")
         self.host.columnconfigure(0, weight=1)
         self.host.bind("<Configure>", self._size)
         self.canvas.bind("<Configure>", self._size)
+
+    def bind_scroll(self, widget):
+        if isinstance(widget, (ttk.Frame, ttk.Label, tk.Frame, tk.Label, tk.Canvas)):
+            widget.bind("<MouseWheel>", self._wheel, add="+")
+        for child in widget.winfo_children():
+            self.bind_scroll(child)
+
+    def _wheel(self, event):
+        if self.vertical.winfo_ismapped():
+            self.canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
+            return "break"
 
     def _size(self, _event=None):
         self.canvas.itemconfigure(self.window, width=max(self.canvas.winfo_width(), self.host.winfo_reqwidth()))
@@ -77,11 +88,12 @@ class PreviewWindow:
         self.root.transient(app.root)
         self.root.geometry("760x620")
         self.root.minsize(520, 420)
-        self.surface = PreviewSurface(self.root, on_reset=lambda: self.view.reset())
+        self.surface = PreviewSurface(self.root)
         self.surface.pack(fill="both", expand=True)
         self.view = create_preview(entry.preview_id, self.surface.host, palette=app.palette,
                                    reduced_motion=app.motion_reduced, spacing=app.gap)
         self.view.grid(row=0, column=0, sticky="nsew")
+        self.surface.bind_scroll(self.view)
         self.surface.apply_palette(app.palette)
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.bind("<Escape>", self._escape)
@@ -125,7 +137,12 @@ class BrowserApp:
         self.help_location_status = tk.StringVar(master=root)
         self._closed = self._filtering = self._appearance_changing = False
         self._traces = []
+        self._header_pending = None
+        self._header_inline = None
         self.motion_reduced = reduced_motion(self.motion.get())
+        if "Microsoft YaHei UI" in tkfont.families(root):
+            for name in ("TkDefaultFont", "TkTextFont"):
+                tkfont.nametofont(name, root=root).configure(family="Microsoft YaHei UI")
         self.palette = apply_theme(root, self.theme.get(), tokens_path=store.tokens_path, font_scale=self.scale)
         root.title("UI_Center")
         if root.tk.call("tk", "windowingsystem") == "win32":
@@ -172,26 +189,27 @@ class BrowserApp:
 
     def _build(self):
         g = self.gap
-        shell = ttk.Frame(self.root, padding=g["md"])
+        shell = ttk.Frame(self.root, padding=g["lg"])
         shell.pack(fill="both", expand=True)
         shell.columnconfigure(0, weight=1)
-        shell.rowconfigure(3, weight=1)
-        header = ttk.Frame(shell)
+        shell.rowconfigure(2, weight=1)
+        self.header = header = ttk.Frame(shell)
         header.grid(row=0, column=0, sticky="ew", pady=(0, g["sm"]))
-        ttk.Label(header, text="UI_Center", style="UIC.Heading.TLabel").pack(side="left")
-        ttk.Label(header, text="  组件与界面规范", style="UIC.Muted.TLabel").pack(side="left")
-        ttk.Button(header, text="使用帮助", command=self.show_help).pack(side="right")
-        appearance = ttk.Frame(shell)
-        appearance.grid(row=1, column=0, sticky="ew", pady=(0, g["sm"]))
-        for column, (title, variable, values, width) in enumerate((
-                ("主题", self.theme_label, tuple(THEMES), 9),
-                ("字号 %", self.font_scale, (100, 125, 150), 5),
-                ("动画", self.motion_label, tuple(MOTIONS), 8))):
-            ttk.Label(appearance, text=title).grid(row=0, column=column * 2, padx=(0 if column == 0 else 12, 6))
-            ttk.Combobox(appearance, textvariable=variable, values=values, width=width,
-                         state="readonly").grid(row=0, column=column * 2 + 1)
+        header.columnconfigure(1, weight=1)
+        self.brand = ttk.Frame(header)
+        self.brand.grid(row=0, column=0, sticky="w")
+        ttk.Label(self.brand, text="UI_Center", style="UIC.Heading.TLabel").pack(anchor="w")
+        ttk.Label(self.brand, text="组件与界面规范", style="UIC.Muted.TLabel").pack(anchor="w")
+        self.appearance_form = appearance = ParameterForm(header, palette=self.palette)
+        appearance.grid(row=0, column=1, sticky="ew", padx=g["lg"])
+        appearance.combo("主题", self.theme, tuple((key, label) for label, key in THEMES.items()), width=9)
+        appearance.combo("字号", self.font_scale, ((100, "100%"), (125, "125%"), (150, "150%")), width=5)
+        appearance.combo("动画", self.motion, tuple((key, label) for label, key in MOTIONS.items()), width=8)
+        self.help_button = ttk.Button(header, text="使用帮助", command=self.show_help, style="UIC.Secondary.TButton")
+        self.help_button.grid(row=0, column=2, sticky="ne")
+        header.bind("<Configure>", self._queue_header)
         search = ttk.Frame(shell)
-        search.grid(row=2, column=0, sticky="ew", pady=(0, g["md"]))
+        search.grid(row=1, column=0, sticky="ew", pady=(0, g["md"]))
         self.search_label = ttk.Label(search)
         self.search_label.pack(side="left", padx=(0, g["sm"]))
         self.search_entry = ttk.Entry(search, textvariable=self.query)
@@ -199,7 +217,7 @@ class BrowserApp:
         self.clear_search_button = ttk.Button(search, text="清空关键词", command=self.clear_search)
         self.clear_search_button.pack(side="left", padx=(g["sm"], 0))
         self.panes = ttk.Panedwindow(shell, orient="horizontal")
-        self.panes.grid(row=3, column=0, sticky="nsew")
+        self.panes.grid(row=2, column=0, sticky="nsew")
         navigation = ttk.Frame(self.panes, width=245, padding=(0, 0, g["sm"], 0))
         self.panes.add(navigation, weight=0)
         self.content = ttk.Frame(self.panes, padding=(g["sm"], 0, 0, 0))
@@ -218,10 +236,12 @@ class BrowserApp:
         results.pack(fill="both", expand=True)
         self.entries = ttk.Treeview(results, show="tree", selectmode="browse", height=10)
         self.entries.column("#0", width=215, minwidth=130, stretch=True)
-        scroll = ttk.Scrollbar(results, orient="vertical", command=self.entries.yview)
+        scroll = AutoScrollbar(results, orient="vertical", command=self.entries.yview)
         self.entries.configure(yscrollcommand=scroll.set)
-        scroll.pack(side="right", fill="y")
-        self.entries.pack(fill="both", expand=True)
+        results.columnconfigure(0, weight=1)
+        results.rowconfigure(0, weight=1)
+        scroll.grid(row=0, column=1, sticky="ns")
+        self.entries.grid(row=0, column=0, sticky="nsew")
         self.entries.bind("<<TreeviewSelect>>", self._selection_changed)
         self.titlebar = titlebar = ttk.Frame(self.content)
         titlebar.grid(row=0, column=0, sticky="ew")
@@ -236,33 +256,46 @@ class BrowserApp:
         self.summary.grid(row=2, column=0, sticky="ew", pady=(0, g["sm"]))
         self.tabs = ttk.Notebook(self.content)
         self.tabs.grid(row=3, column=0, sticky="nsew")
-        self.preview_surface = PreviewSurface(self.tabs, on_reset=self.reset_preview)
+        self.preview_surface = PreviewSurface(self.tabs)
         self.description = DocumentReader(self.tabs, store=self.store)
         self.usage = DocumentReader(self.tabs, store=self.store, horizontal=True)
         self.tabs.bind("<<NotebookTabChanged>>", self._tab_changed)
         self.content.bind("<Configure>", self._resize_text)
-        self.entry_actions = actions = ttk.Frame(self.content)
+        self.entry_actions = actions = ParameterForm(self.content, palette=self.palette)
         actions.grid(row=4, column=0, sticky="ew", pady=(g["sm"], 0))
-        actions.columnconfigure((0, 1, 2, 3), weight=1, uniform="action")
-        self.copy_usage_button = ttk.Button(actions, text="复制示例", command=self.copy_usage,
+        self.copy_usage_button = ttk.Button(actions.group(""), text="复制示例", command=self.copy_usage,
                                             style="UIC.Primary.TButton")
-        self.copy_ai_button = ttk.Button(actions, text="AI 说明", command=self.copy_ai)
-        self.preview_button = ttk.Button(actions, text="独立预览", command=self.open_preview)
-        self.source_button = ttk.Button(actions, text="GitHub", command=self.open_source)
+        self.copy_ai_button = ttk.Button(actions.group(""), text="AI 说明", command=self.copy_ai, style="UIC.Secondary.TButton")
+        self.preview_button = ttk.Button(actions.group(""), text="独立预览", command=self.open_preview, style="UIC.Secondary.TButton")
+        self.source_button = ttk.Button(actions.group(""), text="GitHub", command=self.open_source, style="UIC.Secondary.TButton")
         for i, button in enumerate((self.copy_usage_button, self.copy_ai_button, self.preview_button, self.source_button)):
-            button.grid(row=0, column=i, sticky="ew", padx=(0, 4), pady=(0, 4))
+            button.pack(fill="x")
         self.source_label = ttk.Label(self.content, style="UIC.Muted.TLabel")
         self.source_label.grid(row=5, column=0, sticky="w")
         self.empty_state = EmptyState(self.content, palette=self.palette, kind="no-results",
                                       title="没有找到匹配条目", action_text="显示本类全部",
                                       on_action=self.show_section_entries)
         footer = ttk.Frame(shell)
-        footer.grid(row=4, column=0, sticky="ew", pady=(g["sm"], 0))
+        footer.grid(row=3, column=0, sticky="ew", pady=(g["sm"], 0))
         footer.columnconfigure(0, weight=1)
         self.status_label = ttk.Label(footer, textvariable=self.status, style="UIC.Muted.TLabel", wraplength=900)
         self.status_label.grid(row=0, column=0, sticky="ew")
         ttk.Label(footer, text="v" + self.store.version, style="UIC.Muted.TLabel").grid(row=0, column=1, sticky="e")
         self.status_label.bind("<Configure>", lambda e: self.status_label.configure(wraplength=max(180, e.width)))
+
+    def _queue_header(self, _event=None):
+        if not self._closed and self._header_pending is None:
+            self._header_pending = self.root.after_idle(self._layout_header)
+
+    def _layout_header(self):
+        self._header_pending = None
+        required = self.brand.winfo_reqwidth() + self.appearance_form.preferred_width() + self.help_button.winfo_reqwidth() + 32
+        inline = required <= self.header.winfo_width()
+        if inline != self._header_inline:
+            self._header_inline = inline
+            self.appearance_form.grid(row=0 if inline else 1, column=1 if inline else 0,
+                                      columnspan=1 if inline else 3, sticky="ew",
+                                      padx=16 if inline else 0, pady=0 if inline else (8, 0))
 
     def _resize_text(self, event=None):
         width = max(180, (event.width if event else self.content.winfo_width()) - self.gap["md"])
@@ -438,6 +471,7 @@ class BrowserApp:
                                             palette=self.palette, reduced_motion=self.motion_reduced,
                                             spacing=self.gap)
             self.live_view.grid(row=0, column=0, sticky="nsew")
+            self.preview_surface.bind_scroll(self.live_view)
             self._bind_shortcuts(self.live_view)
             self.preview_surface.canvas.yview_moveto(0)
             self.preview_surface.canvas.xview_moveto(0)
@@ -454,7 +488,7 @@ class BrowserApp:
     def current_code(self):
         if self.current is None:
             return ""
-        if self.live_view is not None and self.current.preview_id == self.current.key:
+        if self.live_view is not None and self.current.preview:
             return self.live_view.code()
         return usage_for(self.store, self.current) or body_for(self.store, self.current)
 
@@ -537,6 +571,9 @@ class BrowserApp:
             self.motion_label.set(self._label(MOTIONS, self.motion.get()))
             self.palette = palette = apply_theme(self.root, self.theme.get(), tokens_path=self.store.tokens_path,
                                                  font_scale=self.scale)
+            self.appearance_form.apply_palette(palette)
+            self.entry_actions.apply_palette(palette)
+            self._queue_header()
             self.motion_reduced = reduced_motion(self.motion.get())
             for reader in (self.description, self.usage):
                 reader.apply_palette(palette, self.tokens, font_scale=self.scale)
@@ -556,7 +593,7 @@ class BrowserApp:
             style = ttk.Style(self.root)
             style.configure("TRadiobutton", background=palette["background"], foreground=palette["foreground"])
             style.configure("TCheckbutton", background=palette["background"], foreground=palette["foreground"])
-            style.configure("TNotebook", background=palette["background"], bordercolor=palette["border"])
+            style.configure("TNotebook", background=palette["background"], bordercolor=palette["surface"], borderwidth=0)
             style.configure("TNotebook.Tab", background=palette["background"], foreground=palette["muted"], padding=(8, 6))
             style.map("TNotebook.Tab", background=[("selected", palette["surface"]), ("active", palette["hover"])],
                       foreground=[("selected", palette["foreground"])])
@@ -662,6 +699,9 @@ class BrowserApp:
         if self._closed:
             return
         self._closed = True
+        if self._header_pending is not None:
+            self.root.after_cancel(self._header_pending)
+            self._header_pending = None
         self._dispose_views()
         for variable, callback in self._traces:
             variable.trace_remove("write", callback)

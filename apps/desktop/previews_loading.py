@@ -14,7 +14,6 @@ from .preview_base import PreviewView, example_code
 
 IDS = ("spinner", "progress-bar", "circular-progress", "skeleton", "shimmer",
        "loading-button", "page-loader")
-LAYOUTS = {"列表": "list", "卡片": "card"}
 
 
 class LoadingPreview(PreviewView):
@@ -26,49 +25,46 @@ class LoadingPreview(PreviewView):
         self.value = tk.DoubleVar(self, value=35)
         self.enabled = tk.BooleanVar(self, value=True)
         self.outcome = tk.StringVar(self, value="成功")
-        self.params = ttk.Frame(self.controls)
-        self.params.grid(row=0, column=0, sticky="w")
-        actions = ttk.Frame(self.controls)
-        actions.grid(row=1, column=0, sticky="w", pady=(8, 0))
-        self.start_button = ttk.Button(actions, text="开始", command=self.start)
+        self.start_button = ttk.Button(self.actions, text="开始", command=self.start)
         self.start_button.grid(row=0, column=0)
-        ttk.Button(actions, text="停止 / 取消", command=self.stop).grid(row=0, column=1, padx=6)
-        ttk.Button(actions, text="重置", command=self.reset).grid(row=0, column=2)
+        self.stop_button = ttk.Button(self.actions, text="停止 / 取消", command=self.stop)
+        self.stop_button.grid(row=0, column=1, padx=8)
         self.stage.columnconfigure(0, weight=1)
         self.stage.rowconfigure(0, weight=1)
-        self.holder = ttk.Frame(self.stage, padding=12)
+        self.holder = ttk.Frame(self.stage, padding=16)
         self.holder.grid(row=0, column=0, sticky="nsew")
         self.holder.columnconfigure(0, weight=1)
         self.holder.rowconfigure(0, weight=1)
         kwargs = dict(palette=palette, reduced_motion=reduced_motion)
         if key == "spinner":
-            self._combo("尺寸", self.setting, ("32", "48", "72"))
-            self._entry("说明", self.text, 2, width=18)
+            self.form.combo("尺寸", self.setting, tuple((value, value + " 像素") for value in ("32", "48", "72")),
+                            command=self._parameters)
+            self.form.entry("说明", self.text, width=18, command=self._parameters)
             self.widget = Spinner(self.holder, **kwargs)
         elif key == "progress-bar":
-            self._combo("模式", self.setting, ("determinate", "indeterminate"), width=13)
-            self._scale(2)
+            self.mode_choice = self.form.choice("模式", self.setting,
+                                                (("determinate", "已知进度"), ("indeterminate", "未知进度")),
+                                                command=self._parameters)
+            self.form.scale("进度", self.value, command=self._parameters)
             self.widget = ProgressBar(self.holder, **kwargs)
         elif key == "circular-progress":
-            self._combo("尺寸", self.setting, ("88", "112", "144"))
-            self._scale(2)
+            self.form.combo("尺寸", self.setting, tuple((value, value + " 像素") for value in ("88", "112", "144")),
+                            command=self._parameters)
+            self.form.scale("进度", self.value, command=self._parameters)
             self.widget = CircularProgress(self.holder, **kwargs)
         elif key in ("skeleton", "shimmer"):
-            self.layout_label = tk.StringVar(self, value="列表")
-            self.effect_label = tk.StringVar(self, value="开启")
-            self.layout_combo = self._combo("布局", self.layout_label, tuple(LAYOUTS))
-            self.layout_combo.bind("<<ComboboxSelected>>", self._layout_selected)
-            self.effect_combo = self._combo("脉动效果" if key == "skeleton" else "扫光效果",
-                                            self.effect_label, ("开启", "关闭"), column=2)
-            self.effect_combo.bind("<<ComboboxSelected>>", self._effect_selected)
+            self.layout_choice = self.form.choice("布局", self.setting, (("list", "列表"), ("card", "卡片")),
+                                                  command=self._parameters)
+            self.effect_choice = self.form.choice("脉动效果" if key == "skeleton" else "扫光效果", self.enabled,
+                                                  ((True, "开启"), (False, "关闭")), command=self._parameters)
             cls = Skeleton if key == "skeleton" else Shimmer
             self.widget = cls(self.holder, **kwargs)
         elif key == "loading-button":
-            self._entry("按钮", self.text, 0, width=16)
-            self._combo("模拟结果", self.outcome, ("成功", "失败"), column=2)
+            self.form.entry("按钮", self.text, width=16, command=self._parameters)
+            self.form.choice("模拟结果", self.outcome, (("成功", "成功"), ("失败", "失败")))
             self.widget = LoadingButton(self.holder, command=self.start, **kwargs)
         else:
-            self._entry("说明", self.text, 0, width=24)
+            self.form.entry("说明", self.text, width=24, command=self._parameters)
             self.input_text = tk.StringVar(self, value="主题切换时保留的输入")
             ttk.Label(self.holder, text="示例页面内容").grid(row=0, column=0)
             self.entry = ttk.Entry(self.holder, textvariable=self.input_text, width=28)
@@ -90,24 +86,8 @@ class LoadingPreview(PreviewView):
     def _fit_page_loader(self, _event=None):
         if not self._disposed:
             # Child Configure events also catch font and wrapping changes.
-            # Account for the demonstration holder's 12px padding on each side.
-            self.stage.rowconfigure(0, minsize=max(260, self.widget.winfo_reqheight() + 24))
-
-    def _combo(self, title, variable, values, column=0, width=8):
-        ttk.Label(self.params, text=title).grid(row=0, column=column, padx=(0, 5))
-        combo = ttk.Combobox(self.params, textvariable=variable, values=values,
-                             width=width, state="readonly")
-        combo.grid(row=0, column=column + 1, padx=(0, 8))
-        combo.bind("<<ComboboxSelected>>", lambda event: self._parameters())
-        return combo
-
-    def _layout_selected(self, _event=None):
-        self.setting.set(LAYOUTS[self.layout_label.get()])
-        self._parameters()
-
-    def _effect_selected(self, _event=None):
-        self.enabled.set(self.effect_label.get() == "开启")
-        self._parameters()
+            # Account for the demonstration holder's 16px padding on each side.
+            self.stage.rowconfigure(0, minsize=max(260, self.widget.winfo_reqheight() + 32))
 
     def set_reduced_motion(self, enabled):
         super().set_reduced_motion(enabled)
@@ -116,7 +96,7 @@ class LoadingPreview(PreviewView):
 
     def _placeholder_feedback(self):
         effect = "脉动" if self.key == "skeleton" else "扫光"
-        self.effect_combo.configure(state="disabled" if self.reduced_motion else "readonly")
+        self.effect_choice.set_enabled(not self.reduced_motion)
         if not self.widget.running:
             message = "已停止；保留静态占位，点击“开始”可重新演示。"
         elif self.reduced_motion:
@@ -127,17 +107,6 @@ class LoadingPreview(PreviewView):
             message = ("正在演示脉动：占位块平滑明暗变化。" if self.key == "skeleton"
                        else "正在演示扫光：高光仅在占位块内移动，空白区域保持不变。")
         self.message.set(message)
-
-    def _entry(self, title, variable, column, width):
-        ttk.Label(self.params, text=title).grid(row=0, column=column, padx=(0, 5))
-        entry = ttk.Entry(self.params, textvariable=variable, width=width)
-        entry.grid(row=0, column=column + 1)
-        entry.bind("<KeyRelease>", lambda event: self._parameters())
-
-    def _scale(self, column):
-        ttk.Label(self.params, text="进度").grid(row=0, column=column)
-        ttk.Scale(self.params, from_=0, to=100, variable=self.value, length=140,
-                  command=lambda value: self._parameters()).grid(row=0, column=column + 1, padx=6)
 
     def _parameters(self):
         if not hasattr(self, "widget"):
@@ -154,9 +123,6 @@ class LoadingPreview(PreviewView):
             widget.set_progress(self.value.get())
         elif key in ("skeleton", "shimmer"):
             widget.set_variant(self.setting.get())
-            self.layout_label.set(next(label for label, value in LAYOUTS.items()
-                                       if value == self.setting.get()))
-            self.effect_label.set("开启" if self.enabled.get() else "关闭")
             if key == "shimmer":
                 widget.set_enabled(self.enabled.get())
             else:

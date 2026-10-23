@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 param(
-    [string]$DistDir = 'work/v1.2.2/desktop-dist',
-    [string]$ReportDir = 'work/v1.2.2/desktop-smoke',
-    [string]$Version = '1.2.2',
+    [string]$DistDir = 'work/v1.2.3/desktop-dist',
+    [string]$ReportDir = 'work/v1.2.3/desktop-smoke',
+    [string]$Version = '1.2.3',
     [Parameter(Mandatory=$true)][string]$SourceCommit
 )
 $ErrorActionPreference = 'Stop'

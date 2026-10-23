@@ -8,7 +8,7 @@ import sys
 import time
 import _tkinter
 
-from .catalog import CORE_COMPONENTS, body_for, usage_for
+from .catalog import CORE_COMPONENTS, body_for
 from .resources import REQUIRED_RESOURCES
 from .preferences import Preferences, default_preferences_path, program_directory
 
@@ -27,6 +27,11 @@ def run_smoke(app, report_path):
         report["checks"].append({"name": name, "passed": bool(condition)})
         if not condition:
             raise AssertionError(name)
+
+    def descendants(widget):
+        yield widget
+        for child in widget.winfo_children():
+            yield from descendants(child)
 
     try:
         root = app.root
@@ -109,7 +114,7 @@ def run_smoke(app, report_path):
         check("android_reference_boundary", "未设备实测" in app.boundary.cget("text") and app.preview_button.instate(["disabled"]))
         app.select_entry("tk-task")
         app.copy_usage()
-        check("copy_exact_original_usage", root.clipboard_get() == usage_for(app.store, app.current))
+        check("copy_exact_current_parameter_usage", root.clipboard_get() == app.live_view.code())
         app.copy_ai()
         check("copy_adoption_with_provenance", (app.store.commit or "开发源码") in root.clipboard_get())
         app.live_view.start()
@@ -146,17 +151,32 @@ def run_smoke(app, report_path):
             root.update()
             check("component_" + key, view.winfo_exists() and len(app.tabs.tabs()) == 3
                   and code.strip() != body_for(app.store, app.current).strip())
+            children = list(descendants(view))
+            resets = [w for w in children if w.winfo_class() in ("TButton", "Button")
+                      and w.winfo_ismapped() and "重置" in str(w.cget("text"))]
+            check(key + "_unified_text_parameters_and_single_reset",
+                  not any(w.winfo_class() in ("TCheckbutton", "Checkbutton") for w in children)
+                  and all(not int(w.cget("indicatoron")) for w in children if w.winfo_class() == "Radiobutton")
+                  and len(resets) == 1
+                  and all(field.winfo_x() + field.winfo_width() <= view.form.winfo_width() + 1
+                          for field in view.form._groups))
+            if key == "inline-alert":
+                check("inline_alert_short_content_is_compact", int(view.widget.body.cget("height")) == 1
+                      and not view.widget.scrollbar.winfo_ismapped())
+                view.long_text.set(True)
+                view._update_alert()
+                root.update()
+                check("inline_alert_long_content_remains_scrollable", int(view.widget.body.cget("height")) == 4
+                      and view.widget.scrollbar.winfo_ismapped())
             if key in ("skeleton", "shimmer"):
                 app.motion.set("normal")
                 view.reset()
                 root.update()
-                check(key + "_chinese_effect_controls", tuple(view.layout_combo.cget("values")) == ("列表", "卡片")
-                      and tuple(view.effect_combo.cget("values")) == ("开启", "关闭")
-                      and str(view.effect_combo.cget("state")) == "readonly")
-                view.layout_combo.set("卡片")
-                view.layout_combo.event_generate("<<ComboboxSelected>>")
-                view.effect_combo.set("关闭")
-                view.effect_combo.event_generate("<<ComboboxSelected>>")
+                check(key + "_chinese_effect_controls", tuple(b.cget("text") for b in view.layout_choice.buttons.values()) == ("列表", "卡片")
+                      and tuple(b.cget("text") for b in view.effect_choice.buttons.values()) == ("开启", "关闭")
+                      and view.effect_choice.enabled)
+                view.layout_choice.select("card")
+                view.effect_choice.select(False)
                 argument = "animate" if key == "skeleton" else "enabled"
                 check(key + "_chinese_choices_keep_original_api", view.setting.get() == "card"
                       and view.widget.variant == "card" and not view.enabled.get()
@@ -164,7 +184,7 @@ def run_smoke(app, report_path):
                       and view.widget._after_id is None and "效果已关闭" in view.message.get())
                 app.motion.set("reduced")
                 check(key + "_reduced_motion_keeps_local_choice", not view.enabled.get()
-                      and view.effect_label.get() == "关闭" and str(view.effect_combo.cget("state")) == "disabled"
+                      and view.effect_choice.select() is False and not view.effect_choice.enabled
                       and view.widget._after_id is None and "减少动画" in view.message.get())
                 view.stop()
                 app.motion.set("normal")

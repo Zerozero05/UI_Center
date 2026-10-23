@@ -204,6 +204,34 @@ class OverlayBehaviorTests(unittest.TestCase):
                 self.assertEqual(str(overlay._colors[0].cget("background")), palette["background"])
             overlay.close()
 
+    def test_all_overlay_shells_keep_sixteen_pixel_padding_and_theme_border(self):
+        tooltip = Tooltip(self.trigger, palette=self.palette, text="简短提示")
+        self.overlays.append(tooltip)
+        overlays = (self.make(Dialog, message="说明"), self.make(ConfirmDialog, message="确认说明"),
+                    self.make(Drawer, message="抽屉内容", reduced_motion=True),
+                    self.make(Popover, anchor=self.trigger, text="补充内容"), tooltip)
+        for overlay in overlays:
+            overlay.show(self.trigger)
+            self.root.update()
+            window, content = overlay.window, overlay.content
+            padding = tuple(int(str(value)) for value in content.tk.splitlist(content.cget("padding")))
+            self.assertEqual(padding, (16,))
+            self.assertEqual(content.winfo_x(), 1)
+            self.assertEqual(content.winfo_y(), 1)
+            for mode in load_tokens()["themes"]:
+                palette = apply_theme(self.root, mode)
+                overlay.apply_palette(palette)
+                self.root.update()
+                self.assertIs(overlay.window, window)
+                self.assertEqual(str(window.cget("background")), palette["border"])
+                self.assertEqual(content.winfo_x(), 1)
+                self.assertEqual(content.winfo_y(), 1)
+            if isinstance(overlay, ConfirmDialog):
+                self.assertIs(self.root.focus_get(), overlay.cancel_button)
+            elif not isinstance(overlay, Tooltip):
+                self.assertIs(self.root.focus_get(), overlay.close_button)
+            overlay.close()
+
     def test_popover_outside_escape_and_preserved_host_bindings(self):
         events = []
         binding = self.root.bind("<ButtonPress-1>", lambda e: events.append("host"), add="+")

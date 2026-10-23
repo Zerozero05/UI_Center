@@ -21,37 +21,26 @@ class OverlayPreview(PreviewView):
         self.side = tk.StringVar(master=self, value="right")
         self.modal = tk.BooleanVar(master=self, value=True)
         self.delay = tk.IntVar(master=self, value=500)
-        self.controls.columnconfigure(1, weight=1)
-        ttk.Label(self.controls, text="内容").grid(row=0, column=0, sticky="w", padx=(0, 8))
-        ttk.Entry(self.controls, textvariable=self.text, width=18).grid(row=0, column=1, sticky="ew")
-        ttk.Button(self.controls, text="打开", command=self.open).grid(row=0, column=2, padx=(8, 0))
+        self.form.entry("内容", self.text, width=28)
+        self.open_button = ttk.Button(self.actions, text="打开", command=self.open)
+        self.open_button.grid(row=0, column=0)
         if key == "drawer":
-            options = ttk.Frame(self.controls)
-            options.grid(row=1, column=0, columnspan=3, sticky="ew", pady=(8, 0))
-            ttk.Label(options, text="方向").pack(side="left")
-            ttk.Combobox(options, textvariable=self.side, values=("left", "right"),
-                         state="readonly", width=7).pack(side="left", padx=8)
-            ttk.Checkbutton(options, text="模态", variable=self.modal).pack(side="left")
+            self.side_choice = self.form.choice("方向", self.side, (("left", "左侧"), ("right", "右侧")))
+            self.modal_choice = self.form.choice("交互方式", self.modal, ((True, "模态"), (False, "非模态")))
         elif key == "tooltip":
-            options = ttk.Frame(self.controls)
-            options.grid(row=1, column=0, columnspan=3, sticky="ew", pady=(8, 0))
-            ttk.Label(options, text="延时毫秒").pack(side="left")
+            options = self.form.group("延时（毫秒）")
             ttk.Spinbox(options, textvariable=self.delay, from_=0, to=2000, increment=100,
-                        width=7, command=self._update_tooltip).pack(side="left", padx=8)
-            ttk.Button(options, text="应用参数", command=self._update_tooltip).pack(side="left")
-        else:
-            ttk.Label(self.controls, text="Esc 关闭；模态弹层在关闭后恢复触发按钮焦点。",
-                      style="UIC.Muted.TLabel", wraplength=430).grid(
-                          row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
+                        width=8, command=self._update_tooltip).pack(side="left")
+            ttk.Button(self.actions, text="应用参数", command=self._update_tooltip).grid(row=0, column=1, padx=8)
         self.stage.columnconfigure(0, weight=1)
         ttk.Label(self.stage, text=_TITLES[key], style="UIC.Heading.TLabel").grid(
-            row=0, column=0, pady=(20, 12))
+            row=0, column=0, pady=(16, 16))
         self.trigger = ttk.Button(self.stage, text="打开" + _TITLES[key], command=self.open)
-        self.trigger.grid(row=1, column=0, pady=12)
+        self.trigger.grid(row=1, column=0, pady=16)
         hint = ("将鼠标停留在按钮上，或用 Tab 聚焦该按钮，延时后显示。"
-                if key == "tooltip" else "使用上方参数后打开；隐藏预览会关闭当前弹层。")
+                if key == "tooltip" else "使用上方参数后打开；Esc 关闭并恢复触发焦点；隐藏预览会关闭弹层。")
         ttk.Label(self.stage, text=hint, wraplength=400, justify="center",
-                  style="UIC.Muted.TLabel").grid(row=2, column=0, padx=12, pady=12)
+                  style="UIC.Muted.TLabel").grid(row=2, column=0, padx=16, pady=16)
         self.overlay = None
         self._build_overlay()
 
@@ -87,8 +76,11 @@ class OverlayPreview(PreviewView):
             self.message.set("延时请填写 0–2000 之间的整数。")
 
     def _closed(self, reason):
-        self.message.set("已关闭：" + {"escape": "Escape", "outside": "点击外部",
-                                     "hidden": "预览隐藏"}.get(reason, reason))
+        reasons = {"close": "关闭按钮", "escape": "按下退出键", "window": "系统关闭",
+                   "outside": "点击外部", "hidden": "预览隐藏", "disposed": "预览重置",
+                   "cancel": "取消操作", "confirm": "确认操作", "error": "内容生成失败",
+                   "pointer": "点击提示目标", "leave": "离开提示目标"}
+        self.message.set("已关闭：" + reasons.get(reason, "操作结束"))
 
     def _result(self, confirmed):
         self.message.set("示例结果：" + ("已确认" if confirmed else "已取消"))
