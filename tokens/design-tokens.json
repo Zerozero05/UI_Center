@@ -3,11 +3,47 @@
   "themes": {
     "light": {
       "background": "#f3f5f8", "surface": "#ffffff", "foreground": "#17212f",
-      "muted": "#53616d", "border": "#8493a5", "accent": "#155eef",
+      "muted": "#53616d", "border": "#7e8d9f", "accent": "#155eef",
       "accent_active": "#1045b5", "selected_background": "#1559c7",
       "selected_foreground": "#ffffff", "input_background": "#ffffff",
       "hover": "#e4ebf5", "disabled": "#66717f", "success": "#167345",
       "warning": "#805000", "error": "#b42318", "focus": "#1045b5"
+    },
+    "warm": {
+      "background": "#f4f0e6",
+      "surface": "#fbf8f0",
+      "foreground": "#2c322b",
+      "muted": "#5a6257",
+      "border": "#838b78",
+      "accent": "#486a53",
+      "accent_active": "#36503f",
+      "selected_background": "#486a53",
+      "selected_foreground": "#ffffff",
+      "input_background": "#fffdf7",
+      "hover": "#e8e8da",
+      "disabled": "#73796b",
+      "success": "#2e6a44",
+      "warning": "#805800",
+      "error": "#9c3b32",
+      "focus": "#365d49"
+    },
+    "sage": {
+      "background": "#eaf0e8",
+      "surface": "#f3f7f0",
+      "foreground": "#24352c",
+      "muted": "#4c6254",
+      "border": "#728b7b",
+      "accent": "#34694c",
+      "accent_active": "#284f3b",
+      "selected_background": "#34694c",
+      "selected_foreground": "#ffffff",
+      "input_background": "#fafcf8",
+      "hover": "#dce8db",
+      "disabled": "#687c6b",
+      "success": "#25663d",
+      "warning": "#7d5700",
+      "error": "#a23830",
+      "focus": "#25583b"
     },
     "dark": {
       "background": "#151c27", "surface": "#1f2937", "foreground": "#e7edf5",

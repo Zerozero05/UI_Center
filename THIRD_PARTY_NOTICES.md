@@ -19,6 +19,12 @@ shadcn/ui、Storybook、Style Dictionary、Sun Valley ttk theme、ttkbootstrap�
 
 这些项目的原始许可、固定提交及具体借鉴内容列在 [来源记录](references/sources.md#外部开源项目的方法参考)。它们的上游许可不会被本仓库的 AGPL 声明替换。来源名称不表示其作者认可、参与或支持本项目。
 
+## v1.2.0 新增组件
+
+`loading.py`、`overlays.py`、`navigation.py`、`feedback.py` 中的18个 Tkinter 组件，以及对应中文文档和参数预览，均由本项目使用 Python 标准库 Tk/ttk/Canvas 自行实现，按 AGPL-3.0-only 分发。本次没有引入新的外部源码、样式、图标、字体、模板、运行依赖或第三方动画库；它们不是任何 Web 组件库的代码克隆或移植。具体文件与范围见[本次实现记录](references/sources.md#v120-本项目新增实现)。
+
+此前的主题/Android 源码改编与方法参考记录继续有效，许可和署名范围不变。Web/Android 适配说明只说明设计/交互职责，本次没有新增对应平台的18个控件。平台运行时和打包工具仍按实际采用的版本及各自许可处理。
+
 ## 构建与 CI 工具引用
 
 GitHub Actions 流程按固定提交使用 `actions/checkout`、`actions/setup-python`、`actions/setup-java` 和 `gradle/actions`。这些是构建/CI 工具依赖，不是 UI 运行依赖；本仓库没有复制或再分发其工具代码/二进制。前三项上游使用 MIT 许可；具体提交和完整许可链接见[工具来源](references/sources.md#构建与-ci-工具依赖)。
@@ -29,7 +35,7 @@ GitHub Actions 流程按固定提交使用 `actions/checkout`、`actions/setup-p
 
 ## Windows 运行包
 
-v1.1.0 Windows 运行包包含实际构建解释器的 Python、Tcl/Tk 与所需二进制，保留实际分发中的完整许可及版权，收集到包内 `assets/licenses`，在浏览器许可入口读取。AGPL 许可、改编来源和同版本完整源码入口同时保留。源码包仍不附环境二进制。
+Windows 运行包沿用 v1.1.0 的许可收集规则：实际构建解释器的 Python、Tcl/Tk 与所需二进制必须保留实际分发中的完整许可及版权，收集到包内 `assets/licenses`，在浏览器许可入口读取。v1.2.0 候选也需核对这些实际随附内容；候选是否已验证见[版本说明](docs/releases/v1.2.0.md)。AGPL 许可、改编来源和同版本完整源码入口同时保留。源码包仍不附环境二进制。
 
 PyInstaller 6.22.3 是构建工具，适用其 GPL 例外与部分 Apache-2.0 条款；没有改编其源码。官方例外不要求随成品分发 PyInstaller 自身许可，但不能据此省略 Python/Tcl/Tk 或其他实际运行依赖的声明。固定版本和官方链接见[来源记录](references/sources.md#windows-运行版的构建与二进制分发)。新增 upload-artifact Action 为构建工具，固定提交及许可记在同一记录，不复制进运行包。
 

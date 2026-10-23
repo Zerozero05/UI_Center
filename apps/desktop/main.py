@@ -24,7 +24,9 @@ def main(argv=None):
     try:
         store = ResourceStore.from_entry(__file__, frozen=bool(getattr(sys, "frozen", False)))
         root = tk.Tk()
-        app = BrowserApp(root, store)
+        preferences_path = (Path(arguments.smoke_test).resolve().parent / "preferences-smoke.json"
+                            if arguments.smoke_test else None)
+        app = BrowserApp(root, store, preferences_path=preferences_path)
         if arguments.smoke_test:
             return run_smoke(app, arguments.smoke_test)
 

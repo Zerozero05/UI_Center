@@ -5,7 +5,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
-import time
+import tempfile
 import tkinter as tk
 from tkinter import ttk
 import unittest
@@ -19,8 +19,14 @@ from apps.desktop.catalog import ENTRIES, body_for, filter_entries, usage_for
 from apps.desktop.resources import REQUIRED_RESOURCES, ResourceStore
 
 
+def work_directory(prefix):
+    parent = ROOT / "work" / "browser"
+    parent.mkdir(parents=True, exist_ok=True)
+    return Path(tempfile.mkdtemp(prefix=prefix, dir=parent))
+
+
 def frozen_fixture():
-    directory = ROOT / "work" / "browser" / ("assets-test-" + str(time.time_ns()))
+    directory = work_directory("assets-test-")
     assets = directory / "assets"
     for name in REQUIRED_RESOURCES:
         destination = assets / name
@@ -32,6 +38,22 @@ def frozen_fixture():
 
 
 class ResourceTests(unittest.TestCase):
+    def test_public_class_names_and_spaced_aliases_find_the_same_component(self):
+        for exact, spaced, key in (
+                ("ProgressBar", "Progress Bar", "progress-bar"),
+                ("CircularProgress", "Circular Progress", "circular-progress"),
+                ("LoadingButton", "Button Loading", "loading-button"),
+                ("PageLoader", "Page Loader", "page-loader"),
+                ("ConfirmDialog", "Confirm Dialog", "confirm-dialog"),
+                ("SegmentedControl", "Segmented Control", "segmented-control"),
+                ("InlineAlert", "Inline Alert", "inline-alert"),
+                ("EmptyState", "Empty State", "empty-state")):
+            with self.subTest(query=exact):
+                self.assertIn(key, [entry.key for entry in filter_entries(exact)])
+                self.assertIn(key, [entry.key for entry in filter_entries(spaced)])
+                self.assertIn(key, [entry.key for entry in filter_entries(key)])
+        self.assertEqual(filter_entries("shummer")[0].key, "shimmer")
+
     def test_frozen_assets_and_exact_identity(self):
         directory, assets = frozen_fixture()
         store = ResourceStore.from_entry(directory / "main.py", frozen=True)
@@ -49,8 +71,7 @@ class ResourceTests(unittest.TestCase):
             ResourceStore(assets, frozen=True)
 
     def test_missing_asset_is_explicit_and_runtime_licenses_are_original(self):
-        directory = ROOT / "work" / "browser" / ("missing-test-" + str(time.time_ns()))
-        directory.mkdir(parents=True)
+        directory = work_directory("missing-test-")
         with self.assertRaisesRegex(FileNotFoundError, "资料不完整"):
             ResourceStore(directory)
         _directory, assets = frozen_fixture()
@@ -74,7 +95,8 @@ class BrowserWidgetTests(unittest.TestCase):
         self.root = tk.Tk()
         self.errors = []
         self.root.report_callback_exception = lambda *details: self.errors.append(details)
-        self.app = BrowserApp(self.root, ResourceStore(ROOT))
+        self.preferences_path = work_directory("widget-preferences-") / "preferences.json"
+        self.app = BrowserApp(self.root, ResourceStore(ROOT), preferences_path=self.preferences_path)
         self.root.update()
 
     def tearDown(self):
@@ -83,6 +105,7 @@ class BrowserWidgetTests(unittest.TestCase):
         self.assertEqual(self.errors, [])
 
     def test_search_filter_empty_state_and_keyboard_focus(self):
+        self.app.section.set("组件库")
         self.app.platform.set("Android")
         self.app.query.set("ActionGroup")
         self.root.update()
@@ -102,6 +125,8 @@ class BrowserWidgetTests(unittest.TestCase):
         self.assertEqual(self.app.query.get(), "")
         self.assertGreater(len(self.app.entries.get_children()), 1)
         self.assertTrue(all(next(entry for entry in ENTRIES if entry.key == key).platform in ("通用", "Android")
+                            for key in self.app.entries.get_children()))
+        self.assertTrue(all(next(entry for entry in ENTRIES if entry.key == key).kind == "component"
                             for key in self.app.entries.get_children()))
 
     def test_readonly_copy_and_development_provenance(self):
@@ -177,7 +202,7 @@ class BrowserWidgetTests(unittest.TestCase):
 
 class BrowserCliTests(unittest.TestCase):
     def test_real_entry_smoke_report_and_exit_code(self):
-        report = ROOT / "work" / "browser" / ("cli-test-" + str(time.time_ns()) + ".json")
+        report = work_directory("cli-test-") / "report.json"
         result = subprocess.run([sys.executable, "-B", str(ROOT / "apps" / "desktop" / "main.py"),
                                  "--smoke-test", str(report)], cwd=ROOT.parent,
                                 capture_output=True, text=True, timeout=20)

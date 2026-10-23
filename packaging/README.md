@@ -7,9 +7,9 @@ its Python, Windows runtime, and bundled Tcl/Tk license notices).
 The supported runtime target is **Windows 11 x64**.
 
 ```console
-python scripts/build_desktop.py --check-only --version 1.1.0
-python scripts/build_desktop.py --output-dir work/desktop-dist --version 1.1.0
-python scripts/verify_desktop_package.py --portable-zip work/desktop-dist/UI_Center_v1.1.0_Windows_x64_Portable.zip --single-exe work/desktop-dist/UI_Center_v1.1.0_Windows_x64.exe --version 1.1.0 --source-commit FULL_GIT_SHA --report work/desktop-dist/package-verification.json
+python scripts/build_desktop.py --check-only --version 1.2.0
+python scripts/build_desktop.py --output-dir work/desktop-dist --version 1.2.0
+python scripts/verify_desktop_package.py --portable-zip work/desktop-dist/UI_Center_v1.2.0_Windows_x64_Portable.zip --single-exe work/desktop-dist/UI_Center_v1.2.0_Windows_x64.exe --version 1.2.0 --source-commit FULL_GIT_SHA --report work/desktop-dist/package-verification.json
 ```
 
 The first command is read-only and does not require PyInstaller. A real build
@@ -74,7 +74,7 @@ Implementation references: [PyInstaller usage](https://pyinstaller.org/en/stable
 and [entry-point-relative resources](https://pyinstaller.org/en/stable/runtime-information.html#using-file).
 These are tool/API references; no upstream packaging implementation was copied.
 
-For a reviewed v1.1.0 release, the annotated tag contains one `Candidate-Run: N`
+For a reviewed v1.2.0 release, the annotated tag contains one `Candidate-Run: N`
 line naming the successful same-commit CI run, and `Portable-SHA256:` /
 `Single-SHA256:` lines binding the exact reviewed binary hashes. The release job
 requires an actual annotated tag, checks the downloaded bytes and that run's

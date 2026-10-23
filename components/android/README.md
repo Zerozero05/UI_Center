@@ -36,6 +36,49 @@ ActionGroup actions = new ActionGroup(this, theme, "开始任务", () -> {
 
 将 `actions`、`panel` 加入现有布局；每次状态变化调用 `actions.setRunning(state.isRunning())` 和 `panel.render(state)`。宿主自行处理重建时的状态保存，参考[独立示例](../../examples/android/README.md)。`UiTheme.systemBars(activity)` 需要在 `setContentView` 后调用；宿主仍负责 WindowInsets，避免内容被系统栏遮挡。
 
+## android-theme
+
+UiTheme读取同一设计参数，明确应用到Activity内控件。现有Android适配仍采用light/dark两主题；桌面新增主题不代表Android已经支持同样的设备外观。以下片段位于Activity创建界面时，设备运行仍未验收。
+
+<!-- example:android-theme -->
+```java
+UiTheme theme = UiTheme.fromAssets(this, false);
+TextView heading = new TextView(this);
+heading.setText("主题示例");
+theme.text(heading, "heading");
+setContentView(heading);
+theme.systemBars(this);
+```
+
+## android-actions
+
+ActionGroup使用调用方提供的开始/取消回调；setRunning控制防重复操作。以下片段位于Activity创建界面时，真实业务由宿主实现。
+
+<!-- example:android-actions -->
+```java
+UiTheme theme = UiTheme.fromAssets(this, false);
+ActionGroup actions = new ActionGroup(this, theme, "开始任务",
+    () -> { /* 调用宿主的开始入口 */ },
+    () -> { /* 请求宿主取消 */ });
+actions.setRunning(false);
+setContentView(actions);
+```
+
+## android-state
+
+TaskState与TaskPanel组合显示任务生命周期。下面是虚构数据的状态演示，所有UI更新必须在主线程进行；终态不会接收迟到进度。
+
+<!-- example:android-state -->
+```java
+UiTheme theme = UiTheme.fromAssets(this, false);
+TaskState state = new TaskState();
+TaskPanel panel = new TaskPanel(this, theme);
+state.start("虚构示例", 2);
+state.advance("示例A");
+panel.render(state);
+setContentView(panel);
+```
+
 ## 来源与改编
 
 源代码改编自 Zerozero05/PDF_Bookmarks_Android，固定提交 [`b44ab5d14e547fef4b80e9469b7c8eb503e2302e`](https://github.com/Zerozero05/PDF_Bookmarks_Android/tree/b44ab5d14e547fef4b80e9469b7c8eb503e2302e)。

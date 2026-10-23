@@ -33,6 +33,21 @@ UI_Center 的通用组件提炼自 Zerozero05 已有的桌面与 Android 程序�
 
 [Android 演示程序](../examples/android/)使用独立应用标识与模拟数据。上述提炼不要求安装或运行原 PDF 程序，也不引入其 PDF、OCR 和文件处理依赖。
 
+## v1.2.0 本项目新增实现
+
+v1.2.0 的18个新组件由本项目直接使用 Python 标准库 Tk/ttk/Canvas 自行实现：
+
+| 文件 | 本次实现 |
+| --- | --- |
+| [loading.py](../components/tkinter/ui_center/loading.py) | Spinner、ProgressBar、CircularProgress、Skeleton、Shimmer、LoadingButton、PageLoader；真实进度与装饰计时器分离 |
+| [overlays.py](../components/tkinter/ui_center/overlays.py) | Dialog、ConfirmDialog、Drawer、Popover、Tooltip；按场景管理显示、焦点和关闭回调 |
+| [navigation.py](../components/tkinter/ui_center/navigation.py) | Tabs、Accordion、SegmentedControl；呈现选择/展开状态并向调用方发出回调 |
+| [feedback.py](../components/tkinter/ui_center/feedback.py) | InlineAlert、Toast、EmptyState；呈现调用者数据和动作 |
+
+对应的中文用途/边界/参数文档和桌面参数预览同属本项目实现。新增组件没有复制 shadcn/ui、Radix、Material 或其他 Web 组件库的源码、样式、图标、字体、模板或资源，也不是把这些库改名后迁入 Tk；没有新增第三方运行依赖。下文既有方法参考与其固定来源继续保留，原主题的 PDF_Bookmarks 代码改编记录不因此改变。新组件与项目其他自有代码继续按 AGPL-3.0-only 分发。
+
+工作台新增组件优先导航、18项内嵌真实预览与可选独立窗口、中文用法/当前参数示例/源码入口、四主题、字号和动画偏好；这些应用代码也由本项目实现。Web/Android 映射仅为交互与设计参数说明，本次没有新增对应平台的18个实现或引入其工具链。
+
 ## 外部开源项目的方法参考
 
 以下六项均为**方法参考**，没有将其源码、模板、图片、图标、字体或其他资源复制进本项目，也没有作为本项目的运行依赖。
@@ -61,7 +76,7 @@ UI_Center 的通用组件提炼自 Zerozero05 已有的桌面与 Android 程序�
 
 `gradle/actions` 的 [DISTRIBUTION.md](https://github.com/gradle/actions/blob/3f5f9adaf7d9fecd50b5935e54106014257a94e6/DISTRIBUTION.md)、[NOTICE](https://github.com/gradle/actions/blob/3f5f9adaf7d9fecd50b5935e54106014257a94e6/NOTICE)和 [缓存组件许可](https://github.com/gradle/actions/blob/3f5f9adaf7d9fecd50b5935e54106014257a94e6/licenses/gradle-actions-caching-license.txt)区分 MIT 的 action/basic caching 与专有 enhanced caching。官方说明在禁用缓存或使用 basic caching 时，不加载或使用专有缓存组件。本项目仅在 GitHub 托管 CI 引用该工具，禁用缓存，不把整个上游标为 MIT-only，也不把其组件纳入 UI 源码分发。
 
-正式发布使用 runner 预装的 [GitHub CLI](https://github.com/cli/cli)（[MIT 许可](https://github.com/cli/cli/blob/trunk/LICENSE)）调用 release create/download/edit；工具实际版本写入该次流程日志。v1.0.0 流程已完成，本版入口仅匹配本仓库的 v1.1.0 标签，并继续先检查、草稿上传及下载校验后公开；其他版本不自动发行。它不作为 UI 运行依赖，也未将 CLI 源码或本机凭据分发到仓库。
+正式发布使用 runner 预装的 [GitHub CLI](https://github.com/cli/cli)（[MIT 许可](https://github.com/cli/cli/blob/trunk/LICENSE)）调用 release create/download/edit；工具实际版本写入该次流程日志。v1.0.0、v1.1.0 的受限版本入口作为既有发布记录保留；v1.2.0 需要先完成候选验证、整理具体附件与说明，再取得该版本的明确发布确认。实际允许标签以对应审阅后的流程为准，普通源码提交不等于公开发行授权。CLI 不作为 UI 运行依赖，也未将其源码或本机凭据分发到仓库。
 
 ## 运行依赖与后续更新
 
@@ -70,7 +85,7 @@ UI_Center 的通用组件提炼自 Zerozero05 已有的桌面与 Android 程序�
 - [PyInstaller v6.22.3](https://github.com/pyinstaller/pyinstaller/tree/ecd7993d65c43b254f4e3f718e36d5b4a70a3ed5)，固定提交 `ecd7993d65c43b254f4e3f718e36d5b4a70a3ed5`，用于从相同入口构建 onedir 与 onefile；本项目未改编其工具源码。官方说明包括 [运行方式](https://pyinstaller.org/en/v6.22.3/operating-mode.html)、[资源路径](https://pyinstaller.org/en/v6.22.3/runtime-information.html)和[许可例外](https://pyinstaller.org/en/v6.22.3/license.html)。例外不替代应用及实际运行依赖的许可。
 - Windows 包实际分发 Python 和 Tcl/Tk 运行二进制；构建时从实际解释器及 Tcl/Tk 分发中收集完整许可/版权，不用网页摘要替代原文。原始条款见 [Python](https://docs.python.org/3.12/license.html) 与 [Tcl/Tk](https://www.tcl-lang.org/software/tcltk/license.html)。实际解释器、工具链版本与源码提交写入包内 build-info 和构建报告。
 - CI 使用 [actions/upload-artifact v7.0.2](https://github.com/actions/upload-artifact/tree/cf430e030ddbb5b0abf93d22962f4752f3646cd9)，为 [MIT](https://github.com/actions/upload-artifact/blob/cf430e030ddbb5b0abf93d22962f4752f3646cd9/LICENSE) 构建工具依赖，用于保存已验证运行包；发布用GitHub CLI下载注释标签指定的同提交候选，不作为应用运行依赖或复制进应用。
-- 本版浏览器、内容索引和轻量文本呈现由本项目实现，复用上述既有组件与规范；没有引入新的第三方 UI、Markdown 或浏览器运行库。
+- 浏览器、内容索引和轻量文本呈现由本项目实现，复用上述既有组件与规范；v1.2.0 新增18个原生 Tkinter 组件及其预览，未引入新的第三方 UI、Markdown、Web 浏览器或动画运行库。四主题、工作台12pt默认字号与外置3项偏好也不依赖外部主题包。
 - 应用图标为本项目自绘的几何面板图案，保留SVG与标准库生成代码；没有采用外部图标、字体或图片。`packaging/licenses/sources.json` 逐项记录打包时所需原始许可快照的固定上游版本、URL与SHA256；这些快照版本标明许可来源，不冒充实际二进制版本，实际运行库文件清单另行生成。
 
 - Tkinter 示例使用 Python 与其 Tk/ttk 接口；Android 示例使用 Android 平台 Views API。具体支持范围与构建环境以各平台说明为准。

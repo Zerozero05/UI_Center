@@ -9,18 +9,22 @@ import webbrowser
 
 
 class DocumentReader(ttk.Frame):
-    def __init__(self, master, *, store):
+    def __init__(self, master, *, store, horizontal=False):
         super().__init__(master)
         self.store = store
-        self.text = tk.Text(self, wrap="word", borderwidth=0,
+        self.text = tk.Text(self, wrap="none" if horizontal else "word", borderwidth=0,
                             takefocus=True, state="disabled", cursor="xterm", undo=False)
         bar = ttk.Scrollbar(self, orient="vertical", command=self.text.yview)
         self.text.configure(yscrollcommand=bar.set)
         bar.pack(side="right", fill="y")
+        if horizontal:
+            horizontal_bar = ttk.Scrollbar(self, orient="horizontal", command=self.text.xview)
+            self.text.configure(xscrollcommand=horizontal_bar.set)
+            horizontal_bar.pack(side="bottom", fill="x")
         self.text.pack(fill="both", expand=True)
         self._links = []
 
-    def apply_palette(self, palette, tokens):
+    def apply_palette(self, palette, tokens, *, font_scale=1.0):
         text = self.text
         gap = tokens["spacing"]
         text.configure(background=palette["surface"], foreground=palette["foreground"],
@@ -31,15 +35,15 @@ class DocumentReader(ttk.Frame):
                        highlightbackground=palette["border"], highlightcolor=palette["focus"],
                        highlightthickness=1, padx=gap["lg"], pady=gap["md"])
         family = tkfont.nametofont("TkDefaultFont", root=text).actual("family")
-        size = tokens["typography"]["body"]["tk_points"]
+        size = max(1, round(tokens["typography"]["body"]["tk_points"] * font_scale))
         text.configure(font=(family, size))
-        text.tag_configure("heading", font=(family, tokens["typography"]["heading"]["tk_points"], "bold"),
+        text.tag_configure("heading", font=(family, round(tokens["typography"]["heading"]["tk_points"] * font_scale), "bold"),
                            spacing1=gap["md"], spacing3=gap["sm"])
         text.tag_configure("bold", font=(family, size, "bold"))
         text.tag_configure("code", font="TkFixedFont", background=palette["hover"], lmargin1=gap["md"], lmargin2=gap["md"],
                            spacing1=max(1, gap["xs"] // 2), spacing3=max(1, gap["xs"] // 2))
         text.tag_configure("link", foreground=palette["accent"], underline=True)
-        text.tag_configure("body", spacing3=gap["xs"])
+        text.tag_configure("body", spacing3=gap["xs"], spacing2=2)
 
     def _target(self, target, resource):
         if urlsplit(target).scheme in ("https", "http"):
@@ -67,7 +71,7 @@ class DocumentReader(ttk.Frame):
                 text.insert("end", "\n")
                 continue
             if in_code or not markdown:
-                text.insert("end", line + "\n", "code" if in_code else "body")
+                text.insert("end", line + "\n", "code")
                 continue
             heading = re.match(r"^#{1,6}\s+(.*)", line)
             if heading:

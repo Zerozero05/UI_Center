@@ -8,6 +8,7 @@ REPOSITORY_URL = "https://github.com/Zerozero05/UI_Center"
 REQUIRED_RESOURCES = (
     "VERSION", "LICENSE", "THIRD_PARTY_NOTICES.md", "VALIDATION.md",
     "docs/design-guide.md", "docs/patterns.md", "docs/cases.md", "docs/consumption.md",
+    "docs/components/loading.md", "docs/components/overlays.md", "docs/components/navigation-feedback.md",
     "components/tkinter/README.md", "components/android/README.md",
     "examples/tkinter/README.md", "examples/android/README.md",
     "tokens/README.md", "tokens/design-tokens.json", "references/sources.md",
@@ -19,10 +20,20 @@ def section_text(text, heading=None):
     if heading is None:
         return text
     lines = text.splitlines()
-    start = next((i for i, line in enumerate(lines) if line == "## " + heading), None)
+    start, end, in_code = None, len(lines), False
+    for index, line in enumerate(lines):
+        if line.startswith("```"):
+            in_code = not in_code
+            continue
+        if in_code:
+            continue
+        if start is None and line == "## " + heading:
+            start = index
+        elif start is not None and re.match(r"^#{1,2} ", line):
+            end = index
+            break
     if start is None:
         raise ValueError("原文缺少章节：" + heading)
-    end = next((i for i in range(start + 1, len(lines)) if re.match(r"^#{1,2} ", lines[i])), len(lines))
     return "\n".join(lines[start:end]) + "\n"
 
 

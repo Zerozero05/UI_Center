@@ -1,4 +1,4 @@
-"""Prepare verified v1.1.0 release files; never publishes anything.
+"""Prepare verified v1.2.0 candidate files; never publishes anything.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
@@ -44,8 +44,8 @@ def validate_runtime_reports(directory, version, commit):
 
 def prepare(directory):
     version = (ROOT / "VERSION").read_text(encoding="utf-8-sig").strip()
-    if version != "1.1.0":
-        raise ValueError("This approved release preparation is restricted to 1.1.0")
+    if version != "1.2.0":
+        raise ValueError("This candidate release preparation is restricted to 1.2.0")
     commit = git("rev-parse", "HEAD").decode().strip()
     runtime = validate_runtime_reports(directory, version, commit)
     archive_path = directory / f"UI_Center_v{version}_Source.zip"

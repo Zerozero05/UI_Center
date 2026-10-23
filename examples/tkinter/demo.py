@@ -16,7 +16,7 @@ from ui_center import ActionBar, TaskPanel, apply_theme, load_tokens
 
 
 class DemoWindow:
-    def __init__(self, root, *, tokens_path=None, interval_ms=240, theme_variable=None):
+    def __init__(self, root, *, tokens_path=None, interval_ms=240, theme_variable=None, font_scale=1.0):
         self.root = root
         self.tokens_path = tokens_path
         self.interval_ms = interval_ms
@@ -31,7 +31,8 @@ class DemoWindow:
         self.project = tk.StringVar(master=root, value="演示资料")
         self.amount = tk.StringVar(master=root, value="12")
         self.outcome = tk.StringVar(master=root, value="正常完成")
-        apply_theme(root, self.theme.get(), tokens_path=tokens_path)
+        self.font_scale = font_scale
+        apply_theme(root, self.theme.get(), tokens_path=tokens_path, font_scale=self.font_scale)
         root.title("UI_Center · 桌面组件示例")
         root.geometry("760x650")
         root.minsize(580, 570)
@@ -40,7 +41,7 @@ class DemoWindow:
         outer.columnconfigure(0, weight=1)
         outer.rowconfigure(4, weight=1)
         header = ttk.Frame(outer)
-        header.grid(row=0, column=0, sticky="ew", pady=(0, self.gap["md"]))
+        header.grid(row=0, column=0, sticky="ew", pady=(0, self.gap["sm"]))
         ttk.Label(header, text="任务与结果", style="UIC.Heading.TLabel").pack(side="left")
         self.theme_picker = ttk.Combobox(header, textvariable=self.theme, state="readonly",
                                         values=("light", "dark"), width=8, takefocus=True)
@@ -73,13 +74,13 @@ class DemoWindow:
         self.panel.set_state("idle", message="选择参数后开始；所有结果均为虚构数据。")
         self.footer = ttk.Label(outer, text="Tab / Shift+Tab 移动焦点；空格激活按钮。示例任务在下一步检查取消请求。",
                                 style="UIC.Muted.TLabel", wraplength=700)
-        self.footer.grid(row=5, column=0, sticky="ew", pady=(self.gap["md"], 0))
+        self.footer.grid(row=5, column=0, sticky="ew", pady=(self.gap["sm"], 0))
         self.footer.bind("<Configure>", lambda event: self.footer.configure(wraplength=max(100, event.width)))
         self.inputs[0].focus_set()
         root.protocol("WM_DELETE_WINDOW", self.close)
 
     def change_theme(self, _event=None):
-        apply_theme(self.root, self.theme.get(), tokens_path=self.tokens_path)
+        apply_theme(self.root, self.theme.get(), tokens_path=self.tokens_path, font_scale=self.font_scale)
 
     def _set_busy(self, busy):
         self.busy = busy

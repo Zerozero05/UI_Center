@@ -19,7 +19,7 @@ def load_tokens(path=None):
         return json.load(stream)
 
 
-def apply_theme(root, mode="light", *, tokens_path=None):
+def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
     """Apply tokens to this interpreter's ttk widgets and return its palette.
 
     The system theme, files, and application data are untouched. Plain Tk
@@ -27,17 +27,22 @@ def apply_theme(root, mode="light", *, tokens_path=None):
     Native file dialogs retain the operating system's own appearance.
     """
     tokens = load_tokens(tokens_path)
+    if font_scale <= 0:
+        raise ValueError("font_scale must be positive")
     if mode not in tokens["themes"]:
         raise ValueError("Unknown theme: " + mode)
     p = tokens["themes"][mode]
     gap = tokens["spacing"]
     typography = tokens["typography"]
     body_font = tkfont.nametofont("TkDefaultFont", root=root)
-    body_font.configure(size=typography["body"]["tk_points"])
+    point = lambda role: max(1, round(typography[role]["tk_points"] * font_scale))
+    body_font.configure(size=point("body"))
     family = body_font.actual("family")
-    body = (family, typography["body"]["tk_points"])
-    small = (family, typography["small"]["tk_points"])
-    heading = (family, typography["heading"]["tk_points"], "bold")
+    body = (family, point("body"))
+    small = (family, point("small"))
+    heading = (family, point("heading"), "bold")
+    for name in ("TkTextFont", "TkFixedFont"):
+        tkfont.nametofont(name, root=root).configure(size=point("body"))
     disabled = [("disabled", p["disabled"])]
     edge = [("disabled", p["border"]), ("focus", p["focus"]), ("active", p["accent"])]
     settings = {

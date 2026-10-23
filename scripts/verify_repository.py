@@ -51,6 +51,13 @@ def main():
             ratio = (b + .05) / (a + .05)
             if ratio < 4.5:
                 errors.append(f'{mode}: {foreground}/{background} contrast {ratio:.2f} < 4.5')
+        for foreground, background in [('border', 'background'), ('border', 'surface'),
+                                       ('focus', 'background'), ('focus', 'input_background'),
+                                       ('accent', 'input_background')]:
+            a, b = sorted((luminance(colors[foreground]), luminance(colors[background])))
+            ratio = (b + .05) / (a + .05)
+            if ratio < 3:
+                errors.append(f'{mode}: control {foreground}/{background} contrast {ratio:.2f} < 3')
     for role in ('body', 'small', 'heading'):
         for unit in ('tk_points', 'android_sp'):
             if tokens['typography'][role][unit] <= 0:

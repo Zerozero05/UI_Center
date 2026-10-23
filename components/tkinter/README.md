@@ -67,6 +67,62 @@ python -B -m unittest discover -s tests -p test_tkinter_ui.py -v
 
 独立消费测试复制代码和 JSON 到 `work/desktop/source-copy-*` 后，使用 `python -I` 隔离启动，仅导入复制品；测试产物保留以便核对。此测试不证明冻结 EXE、系统原生对话框、多屏、所有 DPI 或其他操作系统已经通过。可手动验证：Tab/Shift+Tab 和空格、明暗、缩小窗口、长项目名、取消后重试和关闭运行中的演示。
 
+## tk-theme
+
+单独应用主题时，调用 `apply_theme` 并使用同一份语义参数。组件中心提供浅色、深色、暖纸和灰绿；旧调用方式保持有效。`font_scale` 是可选的字号倍率。普通Tk Text/Canvas由其组件显式更新颜色。
+
+<!-- example:tk-theme -->
+```python
+from pathlib import Path
+import tkinter as tk
+from tkinter import ttk
+from ui_center import apply_theme
+
+root = tk.Tk()
+apply_theme(root, "warm", tokens_path=Path(__file__).parent / "tokens" / "design-tokens.json")
+ttk.Label(root, text="柔和阅读主题示例").pack(padx=24, pady=24)
+ttk.Entry(root).pack(padx=24, pady=12)
+root.mainloop()
+```
+
+## tk-actions
+
+ActionBar组织主操作、次操作与取消入口。调用者通过 `set_busy` 防止重复开始，并负责真实业务取消；组件不启动文件任务。
+
+<!-- example:tk-actions -->
+```python
+from pathlib import Path
+import tkinter as tk
+from ui_center import ActionBar, apply_theme
+
+root = tk.Tk()
+apply_theme(root, tokens_path=Path(__file__).parent / "tokens" / "design-tokens.json")
+actions = ActionBar(root, on_primary=lambda: actions.set_busy(True),
+                    on_cancel=lambda: actions.set_busy(False), spacing={"sm": 8, "md": 12})
+actions.pack(fill="x", padx=24, pady=24)
+root.mainloop()
+```
+
+## tk-task
+
+TaskPanel呈现调用方提供的任务状态、真实进度和结果，不承担业务执行。取消或失败时保留已完成结果。与加载控件相比，它是一个包含结果表格的组合面板。
+
+<!-- example:tk-task -->
+```python
+from pathlib import Path
+import tkinter as tk
+from ui_center import TaskPanel, apply_theme
+
+root = tk.Tk()
+root.geometry("640x500")
+apply_theme(root, tokens_path=Path(__file__).parent / "tokens" / "design-tokens.json")
+panel = TaskPanel(root, spacing={"xs": 4, "sm": 8, "md": 12, "lg": 16})
+panel.pack(fill="both", expand=True, padx=16, pady=16)
+panel.set_state("completed", completed=2, total=2, message="虚构任务已完成",
+                results=[("示例A", "成功"), ("示例B", "成功")])
+root.mainloop()
+```
+
 ## 来源与本地改动
 
 - **源码改编**：[PDF_Bookmarks/ui_theme.py](https://github.com/Zerozero05/PDF_Bookmarks/blob/0097a07ba494e3376fab680e880bf2d2a1ced66c/ui_theme.py)，提交 `0097a07ba494e3376fab680e880bf2d2a1ced66c`，原许可 GNU AGPL v3。采用 L12–34、L53–154、L190–237、L257–297 的语义配色、clam 样式、主题注册和已有控件刷新策略。配色改从统一 JSON 读取，样式独立命名，补充状态文字样式；未采用 PDF 专有标记、图标、护眼主题和工具提示。

@@ -2,7 +2,7 @@
 param(
     [string]$DistDir = 'work/desktop-dist',
     [string]$ReportDir = 'work/desktop-smoke',
-    [string]$Version = '1.1.0',
+    [string]$Version = '1.2.0',
     [Parameter(Mandatory=$true)][string]$SourceCommit
 )
 $ErrorActionPreference = 'Stop'
