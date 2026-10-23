@@ -6,8 +6,10 @@ Build on Windows x64 with the complete CPython Windows distribution (including
 its Python, Windows runtime, and bundled Tcl/Tk license notices).
 The supported runtime target is **Windows 11 x64**.
 
-The v1.2.3 candidate unifies Chinese parameter choices and refines the
-workbench layout and existing component presentation.
+The [v1.2.3 release](https://github.com/Zerozero05/UI_Center/releases/tag/v1.2.3) is published.
+It unifies Chinese parameter choices and refines the workbench layout and existing
+component presentation. Published asset hashes and validation scope are recorded
+in [public validation](../VALIDATION.md#v123-公开附件核验).
 It keeps the existing component APIs, profile format, directory layout, license
 collection and pinned build toolchain.
 Source inputs resolve relative to the repository root, so moving the complete

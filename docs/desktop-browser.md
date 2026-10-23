@@ -1,6 +1,6 @@
 # Windows 组件与规范工作台
 
-工作台用于查找组件、操作真实预览，再把用法与来源带入目标项目。v1.2.2提供18个用 Python 标准库 Tk/ttk/Canvas 编写的组件，继续保留原主题、ActionBar 和 TaskPanel 入口，沿用EXE旁保存位置，改进骨架/扫光效果及分类内筛选。Windows运行包自带Python/Tcl/Tk，无需安装开发环境；当前正式状态见[发行说明](releases/v1.2.2.md)。
+工作台用于查找组件、操作真实预览，再把用法与来源带入目标项目。v1.2.3提供18个用 Python 标准库 Tk/ttk/Canvas 编写的组件，保留原主题、ActionBar、TaskPanel、EXE旁保存位置及分类内筛选；统一中文文字参数，优化响应式布局、紧凑提示和按需滚动条。Windows运行包自带Python/Tcl/Tk，无需安装开发环境；当前正式状态见[发行说明](releases/v1.2.3.md)。
 
 ## 下载与启动
 
