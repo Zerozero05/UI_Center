@@ -6,16 +6,25 @@ Build on Windows x64 with the complete CPython Windows distribution (including
 its Python, Windows runtime, and bundled Tcl/Tk license notices).
 The supported runtime target is **Windows 11 x64**.
 
+The v1.2.1 candidate changes directory organization and the path/usage help.
+It keeps the existing components, license collection and pinned build toolchain.
+Source inputs resolve relative to the repository root, so moving the complete
+source checkout does not require replacing it with a machine-specific path.
+
 ```console
-python scripts/build_desktop.py --check-only --version 1.2.0
-python scripts/build_desktop.py --output-dir work/desktop-dist --version 1.2.0
-python scripts/verify_desktop_package.py --portable-zip work/desktop-dist/UI_Center_v1.2.0_Windows_x64_Portable.zip --single-exe work/desktop-dist/UI_Center_v1.2.0_Windows_x64.exe --version 1.2.0 --source-commit FULL_GIT_SHA --report work/desktop-dist/package-verification.json
+python scripts/build_desktop.py --check-only --version 1.2.1
+python scripts/build_desktop.py --output-dir work/v1.2.1/desktop-dist --version 1.2.1
+python scripts/verify_desktop_package.py --portable-zip work/v1.2.1/desktop-dist/UI_Center_v1.2.1_Windows_x64_Portable.zip --single-exe work/v1.2.1/desktop-dist/UI_Center_v1.2.1_Windows_x64.exe --version 1.2.1 --source-commit FULL_GIT_SHA --report work/v1.2.1/desktop-dist/package-verification.json
 ```
 
 The first command is read-only and does not require PyInstaller. A real build
 requires all application/build inputs to match the declared Git commit. The
 commit comes from `--source-commit`, `UI_CENTER_SOURCE_COMMIT`, `GITHUB_SHA`, or
 the local Git HEAD, in that order. Existing output assets are never overwritten.
+Without `--output-dir`, builds use `work/v<VERSION>/desktop-dist` under the
+source root. v1.2.1 CI keeps its runtime, smoke, release and failure evidence
+under `work/v1.2.1`, separate from prior versions. Both successful runtime
+artifacts and failed-build diagnostics are retained by Actions for seven days.
 
 The portable ZIP has `UI_Center.exe` and `_internal/` at its root. The standalone
 EXE contains the same assets and extracts them using PyInstaller's normal
@@ -23,6 +32,9 @@ one-file mechanism. Resources live beside the frozen entry point in `assets/`.
 Only the allowlisted public documents, shared tokens, example documentation,
 app icon, original AGPL/source notices, and generated build/license
 metadata enter that directory; the working directory is never archived.
+Updated path/usage documents and the in-app help are built from those same
+committed application/resource inputs; local preferences, the protected private
+directory and development caches are not runtime resource inputs.
 The shared Tk demo is imported as a compiled module, with no loose `.py` source
 file added to either runtime asset. Its build input still has to match Git.
 
@@ -68,13 +80,25 @@ The verifier checks both archives' metadata/resources against Git and checks the
 actual native-file inventory, Windows x64/GUI PE headers, license presence/hashes,
 and forbidden private/build paths. It does **not** start the app or claim GUI
 acceptance. CI must run each app's separate `--smoke-test REPORT_JSON` contract.
+CI retains both original reports and `smoke-relocated-portable.json` /
+`smoke-relocated-single.json` after moving the complete extracted directory;
+all four must use the actual executable's `data/preferences.json`, and relocated
+reports must retain the original `sage` / `125` / `reduced` profile values.
+Default-profile write probes require a child-only `UI_CENTER_SMOKE_SANDBOX`
+and an executable strictly inside it; ordinary smoke invocations do not write
+the default profile.
 
 Implementation references: [PyInstaller usage](https://pyinstaller.org/en/stable/usage.html),
 [data files](https://pyinstaller.org/en/stable/spec-files.html#adding-data-files),
 and [entry-point-relative resources](https://pyinstaller.org/en/stable/runtime-information.html#using-file).
 These are tool/API references; no upstream packaging implementation was copied.
 
-For a reviewed v1.2.0 release, the annotated tag contains one `Candidate-Run: N`
+Publication is restricted to `refs/tags/v1.2.1` in the release workflow. Updating
+the version or building a candidate does not create that tag or publish a release;
+the user must first approve this version's concrete candidate and attachments.
+Older tags and published assets remain unchanged.
+
+For a reviewed v1.2.1 release, the annotated tag contains one `Candidate-Run: N`
 line naming the successful same-commit CI run, and `Portable-SHA256:` /
 `Single-SHA256:` lines binding the exact reviewed binary hashes. The release job
 requires an actual annotated tag, checks the downloaded bytes and that run's

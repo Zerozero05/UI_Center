@@ -1,4 +1,4 @@
-"""Prepare verified v1.2.0 candidate files; never publishes anything.
+"""Prepare verified v1.2.1 candidate files; never publishes anything.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
@@ -31,21 +31,23 @@ def validate_runtime_reports(directory, version, commit):
                   "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
         if recorded[path.name] != actual:
             raise ValueError("Verified artifact hash/size mismatch: " + path.name)
-        smoke = json.loads((directory / f"smoke-{mode}.json").read_text(encoding="utf-8-sig"))
-        if not (smoke.get("status") == "passed" and smoke.get("version") == version
-                and smoke.get("commit") == commit and smoke.get("frozen") is True):
-            raise ValueError("Frozen smoke identity failed: " + mode)
-        if not smoke.get("checks") or not all(item["passed"] for item in smoke["checks"]):
-            raise ValueError("Frozen smoke checks failed: " + mode)
-        if smoke.get("artifact") != actual:
-            raise ValueError("Smoke report is not bound to these artifact bytes: " + mode)
+        for prefix in ("", "relocated-"):
+            report_name = prefix + mode
+            smoke = json.loads((directory / f"smoke-{report_name}.json").read_text(encoding="utf-8-sig"))
+            if not (smoke.get("status") == "passed" and smoke.get("version") == version
+                    and smoke.get("commit") == commit and smoke.get("frozen") is True):
+                raise ValueError("Frozen smoke identity failed: " + report_name)
+            if not smoke.get("checks") or not all(item["passed"] for item in smoke["checks"]):
+                raise ValueError("Frozen smoke checks failed: " + report_name)
+            if smoke.get("artifact") != actual:
+                raise ValueError("Smoke report is not bound to these artifact bytes: " + report_name)
     return artifacts
 
 
 def prepare(directory):
     version = (ROOT / "VERSION").read_text(encoding="utf-8-sig").strip()
-    if version != "1.2.0":
-        raise ValueError("This candidate release preparation is restricted to 1.2.0")
+    if version != "1.2.1":
+        raise ValueError("This candidate release preparation is restricted to 1.2.1")
     commit = git("rev-parse", "HEAD").decode().strip()
     runtime = validate_runtime_reports(directory, version, commit)
     archive_path = directory / f"UI_Center_v{version}_Source.zip"
@@ -66,7 +68,7 @@ def prepare(directory):
     notes += f"\n\n源码提交：`{commit}`。本次 Windows 源码/便携包/单文件包及 Android 构建检查均需成功后才公开。\n"
     notes += "\n附件实际大小：\n\n"
     notes += "\n".join(f"- `{path.name}`：{path.stat().st_size:,} 字节。" for path in assets)
-    notes += "\n\n" + "两种冻结包均在中文及空格路径、无 Python/Tcl 环境变量、无关工作目录下完成真实控件冒烟；具体检查见该次 Actions 日志。\n"
+    notes += "\n\n" + "两种冻结包均在中文及空格路径、整个运行目录迁移后、无 Python/Tcl 环境变量及无关工作目录下完成真实控件冒烟；四份报告均绑定同一源码提交与对应附件字节，具体检查见该次 Actions 日志。\n"
     (directory / "release-notes.md").write_text(notes, encoding="utf-8")
     print(f"PASS: source archive matches {len(tracked)} Git files; three assets hashed for {commit}")
 

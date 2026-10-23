@@ -20,22 +20,22 @@ jobs:
           python -m venv work/build-env
           ./work/build-env/Scripts/python.exe -m pip install --disable-pip-version-check -r requirements-desktop-build.txt
       - name: Build both Windows runtime forms
-        run: ./work/build-env/Scripts/python.exe -B scripts/build_desktop.py --output-dir work/desktop-dist --version 1.2.0
+        run: ./work/build-env/Scripts/python.exe -B scripts/build_desktop.py --output-dir work/v1.2.1/desktop-dist --version 1.2.1
       - name: Verify package resources and provenance
-        run: ./work/build-env/Scripts/python.exe -B scripts/verify_desktop_package.py --portable-zip work/desktop-dist/UI_Center_v1.2.0_Windows_x64_Portable.zip --single-exe work/desktop-dist/UI_Center_v1.2.0_Windows_x64.exe --version 1.2.0 --source-commit ${{ github.sha }} --report work/desktop-dist/verify-desktop-report.json
+        run: ./work/build-env/Scripts/python.exe -B scripts/verify_desktop_package.py --portable-zip work/v1.2.1/desktop-dist/UI_Center_v1.2.1_Windows_x64_Portable.zip --single-exe work/v1.2.1/desktop-dist/UI_Center_v1.2.1_Windows_x64.exe --version 1.2.1 --source-commit ${{ github.sha }} --report work/v1.2.1/desktop-dist/verify-desktop-report.json
       - name: Run both frozen apps away from source paths
         shell: pwsh
-        run: ./scripts/smoke_desktop.ps1 -DistDir work/desktop-dist -ReportDir work/desktop-smoke -Version 1.2.0 -SourceCommit ${{ github.sha }}
+        run: ./scripts/smoke_desktop.ps1 -DistDir work/v1.2.1/desktop-dist -ReportDir work/v1.2.1/desktop-smoke -Version 1.2.1 -SourceCommit ${{ github.sha }}
       - name: Stage verified runtime artifact
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Path work/runtime-artifact | Out-Null
-          Copy-Item -LiteralPath work/desktop-dist/UI_Center_v1.2.0_Windows_x64_Portable.zip,work/desktop-dist/UI_Center_v1.2.0_Windows_x64.exe,work/desktop-dist/build-desktop-report.json,work/desktop-dist/verify-desktop-report.json -Destination work/runtime-artifact
-          Copy-Item -Path work/desktop-smoke/smoke-*.json -Destination work/runtime-artifact
+          New-Item -ItemType Directory -Path work/v1.2.1/runtime-artifact | Out-Null
+          Copy-Item -LiteralPath work/v1.2.1/desktop-dist/UI_Center_v1.2.1_Windows_x64_Portable.zip,work/v1.2.1/desktop-dist/UI_Center_v1.2.1_Windows_x64.exe,work/v1.2.1/desktop-dist/build-desktop-report.json,work/v1.2.1/desktop-dist/verify-desktop-report.json -Destination work/v1.2.1/runtime-artifact
+          Copy-Item -Path work/v1.2.1/desktop-smoke/smoke-*.json -Destination work/v1.2.1/runtime-artifact
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: windows-runtime-v1.2.0-${{ github.sha }}
-          path: work/runtime-artifact/*
+          name: windows-runtime-v1.2.1-${{ github.sha }}
+          path: work/v1.2.1/runtime-artifact/*
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
@@ -43,12 +43,12 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: windows-diagnostics-v1.2.0-${{ github.sha }}
+          name: windows-diagnostics-v1.2.1-${{ github.sha }}
           path: |
-            work/desktop-dist/*.zip
-            work/desktop-dist/*.exe
-            work/desktop-dist/*-report.json
-            work/desktop-smoke/*.json
+            work/v1.2.1/desktop-dist/*.zip
+            work/v1.2.1/desktop-dist/*.exe
+            work/v1.2.1/desktop-dist/*-report.json
+            work/v1.2.1/desktop-smoke/*.json
           if-no-files-found: ignore
           compression-level: 0
           retention-days: 7
@@ -76,8 +76,8 @@ jobs:
           java -cp work/ci-state TaskStateTest
 
   release:
-    name: Publish approved v1.2.0 runtime and source release
-    if: github.repository == 'Zerozero05/UI_Center' && github.ref == 'refs/tags/v1.2.0'
+    name: Publish approved v1.2.1 runtime and source release
+    if: github.repository == 'Zerozero05/UI_Center' && github.ref == 'refs/tags/v1.2.1'
     needs: [desktop, android]
     runs-on: ubuntu-latest
     permissions:
@@ -96,16 +96,16 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           import json, pathlib, re, subprocess
-          if subprocess.check_output(['git', 'cat-file', '-t', 'refs/tags/v1.2.0'], text=True).strip() != 'tag':
+          if subprocess.check_output(['git', 'cat-file', '-t', 'refs/tags/v1.2.1'], text=True).strip() != 'tag':
               raise SystemExit('An annotated release tag is required')
-          note = subprocess.check_output(['git', 'for-each-ref', '--format=%(contents)', 'refs/tags/v1.2.0'], text=True)
+          note = subprocess.check_output(['git', 'for-each-ref', '--format=%(contents)', 'refs/tags/v1.2.1'], text=True)
           matches = re.findall(r'^Candidate-Run: ([1-9][0-9]*)$', note, re.M)
           if len(matches) != 1:
               raise SystemExit('The approved annotated tag must identify one reviewed candidate run')
           pathlib.Path('candidate-run.txt').write_text(matches[0], encoding='utf-8')
           approved = {}
-          for field, filename in [('Portable-SHA256', 'UI_Center_v1.2.0_Windows_x64_Portable.zip'),
-                                  ('Single-SHA256', 'UI_Center_v1.2.0_Windows_x64.exe')]:
+          for field, filename in [('Portable-SHA256', 'UI_Center_v1.2.1_Windows_x64_Portable.zip'),
+                                  ('Single-SHA256', 'UI_Center_v1.2.1_Windows_x64.exe')]:
               values = re.findall(r'^' + field + r': ([0-9a-f]{64})$', note, re.M)
               if len(values) != 1:
                   raise SystemExit('The tag must bind one reviewed hash for ' + field)
@@ -115,18 +115,18 @@ jobs:
           CANDIDATE_RUN=$(cat candidate-run.txt)
           test "$(gh api "repos/$GH_REPO/actions/runs/$CANDIDATE_RUN" --jq .head_sha)" = "$(git rev-parse HEAD)"
           test "$(gh api "repos/$GH_REPO/actions/runs/$CANDIDATE_RUN" --jq .conclusion)" = success
-          gh run download "$CANDIDATE_RUN" --name "windows-runtime-v1.2.0-$(git rev-parse HEAD)" --dir work/release
+          gh run download "$CANDIDATE_RUN" --name "windows-runtime-v1.2.1-$(git rev-parse HEAD)" --dir work/v1.2.1/release
           python3 - <<'PY'
           import hashlib, json, pathlib
           for name, digest in json.loads(pathlib.Path('candidate-approval.json').read_text()).items():
-              if hashlib.sha256((pathlib.Path('work/release') / name).read_bytes()).hexdigest() != digest:
+              if hashlib.sha256((pathlib.Path('work/v1.2.1/release') / name).read_bytes()).hexdigest() != digest:
                   raise SystemExit('Downloaded candidate differs from the reviewed tag hash: ' + name)
           PY
       - name: Prepare source snapshot, checksums and notes
         run: |
-          python3 -B scripts/prepare_desktop_release.py --directory work/release
-          printf '\n已审阅运行包来源：[候选检查](https://github.com/%s/actions/runs/%s)。\n' "$GITHUB_REPOSITORY" "$(cat candidate-run.txt)" >> work/release/release-notes.md
-          printf '\n本次检查：[GitHub Actions](https://github.com/%s/actions/runs/%s)。\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> work/release/release-notes.md
+          python3 -B scripts/prepare_desktop_release.py --directory work/v1.2.1/release
+          printf '\n已审阅运行包来源：[候选检查](https://github.com/%s/actions/runs/%s)。\n' "$GITHUB_REPOSITORY" "$(cat candidate-run.txt)" >> work/v1.2.1/release/release-notes.md
+          printf '\n本次检查：[GitHub Actions](https://github.com/%s/actions/runs/%s)。\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> work/v1.2.1/release/release-notes.md
       - name: Create draft, verify public assets before publishing
         env:
           GH_TOKEN: ${{ github.token }}
@@ -134,9 +134,9 @@ jobs:
         run: |
           set -euo pipefail
           gh --version
-          gh release create v1.2.0 work/release/UI_Center_v1.2.0_Windows_x64_Portable.zip work/release/UI_Center_v1.2.0_Windows_x64.exe work/release/UI_Center_v1.2.0_Source.zip work/release/SHA256SUMS --verify-tag --draft --title v1.2.0 --notes-file work/release/release-notes.md
-          mkdir -p work/release-download
-          gh release download v1.2.0 --dir work/release-download
-          cmp work/release/SHA256SUMS work/release-download/SHA256SUMS
-          (cd work/release-download && sha256sum --check SHA256SUMS)
-          gh release edit v1.2.0 --draft=false --latest
+          gh release create v1.2.1 work/v1.2.1/release/UI_Center_v1.2.1_Windows_x64_Portable.zip work/v1.2.1/release/UI_Center_v1.2.1_Windows_x64.exe work/v1.2.1/release/UI_Center_v1.2.1_Source.zip work/v1.2.1/release/SHA256SUMS --verify-tag --draft --title v1.2.1 --notes-file work/v1.2.1/release/release-notes.md
+          mkdir -p work/v1.2.1/release-download
+          gh release download v1.2.1 --dir work/v1.2.1/release-download
+          cmp work/v1.2.1/release/SHA256SUMS work/v1.2.1/release-download/SHA256SUMS
+          (cd work/v1.2.1/release-download && sha256sum --check SHA256SUMS)
+          gh release edit v1.2.1 --draft=false --latest

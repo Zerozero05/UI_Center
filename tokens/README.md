@@ -13,7 +13,7 @@
 
 Tk 的 `apply_theme(root, mode='light', *, tokens_path=None, font_scale=1.0)` 保留原默认配色/基础字号接口，增加 `warm` / `sage` 与显式字体倍率。JSON 中 `body.tk_points=10` 继续作为共享基础值；桌面工作台采用1.2倍得到默认12pt正文，100% / 125% / 150%选择对应实际倍率1.2 / 1.5 / 1.8、正文12 / 15 / 18pt。它不改写 JSON，不修改 Windows 显示缩放，也不强迫独立消费项目使用工作台字号。
 
-工作台默认 `warm`，仅在 `D:\03_github_projects\UI_Center_Data\preferences.json` 持久保存 `theme`、`font_scale`、`motion`。这些是应用偏好，不是新增设计参数，也不随参数文件复制到消费项目。动画支持跟随系统、正常和减少；装饰计时器与真实任务进度分别管理。主题/字号更新不应重建控件或清空输入、选择和进度。
+工作台默认 `warm`，v1.2.1仅在实际EXE旁的data/preferences.json持久保存 `theme`、`font_scale`、`motion`；源码调试使用仓库work/data，显式路径优先。这些是应用偏好，不是新增设计参数，也不随参数文件复制到消费项目。动画支持跟随系统、正常和减少；装饰计时器与真实任务进度分别管理。主题/字号更新不应重建控件或清空输入、选择和进度。
 
 18个新 Tkinter 组件在自身的 `apply_palette()` 中使用这些语义角色，源码没有引入 Web 主题库。其他平台可按相同角色自行适配，但本次没有新增 Web/Android 的18个组件实现。平台支持范围与设备验证仍以各自文档为准。
 

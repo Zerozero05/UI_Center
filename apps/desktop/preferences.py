@@ -3,9 +3,28 @@ from pathlib import Path
 import ctypes
 import json
 import os
+import sys
 import tempfile
 
-DEFAULT_PATH = Path(r"D:\03_github_projects\UI_Center_Data\preferences.json")
+
+def program_directory():
+    """Locate the installed executable or the source repository, never the cwd."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parents[2]
+
+
+def default_preferences_path():
+    """Keep installed data beside the program and source data in ignored work."""
+    directory = program_directory()
+    if not getattr(sys, "frozen", False):
+        directory = directory / "work"
+    return directory / "data" / "preferences.json"
+
+
+# Compatibility for callers importing the original constant. New instances
+# resolve dynamically so frozen/source execution and explicit paths stay separate.
+DEFAULT_PATH = default_preferences_path()
 DEFAULTS = {"theme": "warm", "font_scale": 100, "motion": "system"}
 THEMES = {"暖纸护眼": "warm", "灰绿护眼": "sage", "浅色": "light", "深色": "dark"}
 MOTIONS = {"跟随系统": "system", "正常动画": "normal", "减少动画": "reduced"}
@@ -13,7 +32,7 @@ MOTIONS = {"跟随系统": "system", "正常动画": "normal", "减少动画": "
 
 class Preferences:
     def __init__(self, path=None):
-        self.path = Path(path) if path is not None else DEFAULT_PATH
+        self.path = Path(path) if path is not None else default_preferences_path()
         self.notice = ""
 
     def load(self):

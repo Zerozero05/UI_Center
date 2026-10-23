@@ -117,7 +117,8 @@ def binary_inventory(bundle, licenses, notices):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "work/desktop-dist")
+    parser.add_argument("--output-dir", type=Path,
+                        help="Build destination; defaults to work/v<VERSION>/desktop-dist")
     parser.add_argument("--version")
     parser.add_argument("--source-commit")
     parser.add_argument("--check-only", action="store_true", help="Read inputs only; no installs, build or writes")
@@ -135,7 +136,7 @@ def main():
     if importlib.metadata.version("pyinstaller") != PYINSTALLER_VERSION:
         raise ValueError("Install the pinned requirements-desktop-build.txt in the build environment first")
     check_committed_sources(commit)
-    output = args.output_dir.resolve()
+    output = (args.output_dir or ROOT / "work" / ("v" + version) / "desktop-dist").resolve()
     portable_name, single_name = asset_filenames(version)
     for filename in (portable_name, single_name, "build-desktop-report.json"):
         if (output / filename).exists():

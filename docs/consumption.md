@@ -16,7 +16,7 @@ v1.2.0 的18个新增组件均为本项目自行实现的 Tk/ttk/Canvas 源码�
 
 调用 `apply_theme(root, mode, tokens_path=...)` 取得 palette，再向新组件传 `palette=palette`。切换颜色时重新应用主题并调用组件的 `apply_palette()`；动画或弹层组件按各自 API 同步 `set_visible()`，支持减少动画的组件在偏好变化时调用 `set_reduced_motion()`。静态组件无需装饰计时器，也不统一要求这些接口。减少动画与隐藏不抹掉真实进度；真实任务是否暂停/取消由消费应用决定。销毁页面时释放组件和调用方自己的计时器/业务资源。
 
-主题支持 `light`、`dark`、`warm`、`sage`；`font_scale` 是 `apply_theme` 的可选倍率，默认1.0保留既有基础字号。桌面工作台以1.2倍率得到默认12pt正文，再提供100% / 125% / 150%选择。消费项目可以继续采用自身的字号和持久设置，不需要复制工作台的固定偏好路径。工作台本身只在 `D:\03_github_projects\UI_Center_Data\preferences.json` 保存主题、字号、动画3项。
+主题支持 `light`、`dark`、`warm`、`sage`；`font_scale` 是 `apply_theme` 的可选倍率，默认1.0保留既有基础字号。桌面工作台以1.2倍率得到默认12pt正文，再提供100% / 125% / 150%选择。消费项目继续采用自身的字号和持久设置，不复制工作台偏好路径。v1.2.1工作台只在EXE旁的data/preferences.json保存主题、字号、动画3项；源码调试隔离到仓库work/data，显式路径优先。
 
 以下结构可直接承载工作台复制的代码：
 

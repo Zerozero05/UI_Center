@@ -2,12 +2,15 @@
 import ast
 import hashlib
 import json
+import os
 from pathlib import Path
+import sys
 import time
 import _tkinter
 
 from .catalog import CORE_COMPONENTS, body_for, usage_for
 from .resources import REQUIRED_RESOURCES
+from .preferences import Preferences, default_preferences_path, program_directory
 
 
 def write_report(path, report):
@@ -29,6 +32,38 @@ def run_smoke(app, report_path):
         root = app.root
         callback_errors = []
         root.report_callback_exception = lambda _kind, error, _trace: callback_errors.append(str(error))
+        root.update()
+        program = program_directory()
+        default_path = default_preferences_path()
+        active_path = app.preferences.path.resolve()
+        expected_program = Path(sys.executable).resolve().parent if app.store.frozen else app.store.root
+        expected_default = expected_program / ("data" if app.store.frozen else "work/data") / "preferences.json"
+        report["locations"] = {"program_directory": str(program),
+                               "default_preferences_file": str(default_path),
+                               "active_preferences_file": str(active_path)}
+        check("program_directory_uses_actual_entry", program == expected_program)
+        check("default_preferences_stay_in_project", default_path == expected_default)
+        check("smoke_keeps_explicit_preferences", active_path == Path(report_path).resolve().parent / "preferences-smoke.json")
+        sandbox = os.environ.get("UI_CENTER_SMOKE_SANDBOX")
+        if app.store.frozen and sandbox:
+            sandbox_root = Path(sandbox).resolve()
+            check("default_probe_is_inside_explicit_sandbox", program != sandbox_root
+                  and program.is_relative_to(sandbox_root) and default_path.is_relative_to(sandbox_root))
+            profile = Preferences()
+            report["default_profile_before"] = profile.load()
+            probe_values = {"theme": "sage", "font_scale": 125, "motion": "reduced"}
+            check("default_preferences_write", profile.save(probe_values))
+            report["default_profile_after"] = Preferences().load()
+            check("default_preferences_restart_read", report["default_profile_after"] == probe_values)
+            check("default_preferences_only_three_fields", set(json.loads(default_path.read_text(encoding="utf-8")))
+                  == set(probe_values))
+        app.show_help()
+        root.update()
+        check("help_shows_actual_locations", app.help_program_path.get() == str(program)
+              and app.help_settings_path.get() == str(active_path))
+        check("help_paths_are_readonly", str(app.help_program_entry.cget("state")) == "readonly"
+              and str(app.help_settings_entry.cget("state")) == "readonly")
+        app.help_close_button.invoke()
         root.update()
         report["resources"] = [{"path": name, "sha256": hashlib.sha256((app.store.root / name).read_bytes()).hexdigest()}
                                for name in REQUIRED_RESOURCES]

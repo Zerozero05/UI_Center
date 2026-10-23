@@ -1,4 +1,5 @@
 """Offline component workbench, Chinese guidance and source adoption."""
+import os
 import tkinter as tk
 from tkinter import ttk
 import webbrowser
@@ -9,7 +10,7 @@ from examples.tkinter.demo import DemoWindow
 
 from .catalog import (ENTRIES, PLATFORMS, SCENES, SECTIONS, adoption_note, body_for,
                       filter_entries, section_for, source_notes, usage_for)
-from .preferences import Preferences, THEMES, MOTIONS, reduced_motion
+from .preferences import Preferences, THEMES, MOTIONS, program_directory, reduced_motion
 from .previews import create_preview
 from .reader import DocumentReader
 
@@ -118,6 +119,9 @@ class BrowserApp:
         self.status = tk.StringVar(master=root, value=self.preferences.notice or "选择组件即可操作真实预览；用法和源码分别查看。")
         self.current = self.preview = self.live_view = self._help = None
         self._help_reader = None
+        self.help_program_path = tk.StringVar(master=root)
+        self.help_settings_path = tk.StringVar(master=root)
+        self.help_location_status = tk.StringVar(master=root)
         self._closed = self._filtering = self._appearance_changing = False
         self._traces = []
         self.motion_reduced = reduced_motion(self.motion.get())
@@ -517,16 +521,18 @@ class BrowserApp:
             if save:
                 self.preferences.save({"theme": self.theme.get(), "font_scale": self.font_scale.get(), "motion": self.motion.get()})
                 self.status.set(self.preferences.notice or "界面偏好已保存；当前预览参数保持不变。")
+                self._refresh_help_locations()
         finally:
             self._appearance_changing = False
 
     def show_help(self):
         if self._help is not None and self._help.winfo_exists():
+            self._refresh_help_locations()
             self._help.lift()
             return
         self._help = top = tk.Toplevel(self.root)
         top.title("UI_Center · 使用帮助")
-        top.geometry("660x460")
+        top.geometry("720x620")
         frame = ttk.Frame(top, padding=16)
         frame.pack(fill="both", expand=True)
         frame.columnconfigure(0, weight=1)
@@ -541,10 +547,73 @@ class BrowserApp:
                     "5. Ctrl+F 搜索；Esc 优先关闭当前弹层，否则清空搜索；Tab 移动焦点。\n\n"
                     "6. 护眼主题是低刺激配色，不代表医学防护。减少动画保留静态等待和真实进度。\n\n"
                     "7. Android 为源码与构建参考，设备运行尚未验证。点击 GitHub 链接才打开浏览器。\n\n"
-                    "界面偏好仅保存主题、字号与动画设置：\n\n" + str(self.preferences.path))
+                    "界面偏好仅保存主题、字号与动画设置。\n\n"
+                    "下方路径可选中后按 Ctrl+C 复制。打开目录不会创建文件或文件夹。")
         reader.apply_palette(self.palette, self.tokens, font_scale=self.scale)
-        ttk.Button(frame, text="关闭", command=top.destroy).grid(row=1, column=0, sticky="e", pady=(8, 0))
+        locations = ttk.LabelFrame(frame, text="文件与保存位置", padding=8)
+        locations.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+        locations.columnconfigure((0, 1), weight=1, uniform="location")
+        ttk.Label(locations, text="当前程序目录", style="UIC.Muted.TLabel").grid(
+            row=0, column=0, columnspan=2, sticky="w")
+        self.help_program_entry = ttk.Entry(locations, textvariable=self.help_program_path, state="readonly")
+        self.help_program_entry.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(2, 6))
+        ttk.Label(locations, text="设置文件", style="UIC.Muted.TLabel").grid(
+            row=2, column=0, columnspan=2, sticky="w")
+        self.help_settings_entry = ttk.Entry(locations, textvariable=self.help_settings_path, state="readonly")
+        self.help_settings_entry.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(2, 8))
+        self.help_open_program_button = ttk.Button(locations, text="打开程序目录", command=self.open_program_directory)
+        self.help_open_settings_button = ttk.Button(locations, text="打开设置目录", command=self.open_settings_directory)
+        self.help_open_program_button.grid(row=4, column=0, sticky="ew", padx=(0, 4))
+        self.help_open_settings_button.grid(row=4, column=1, sticky="ew", padx=(4, 0))
+        location_status = ttk.Label(locations, textvariable=self.help_location_status,
+                                    style="UIC.Muted.TLabel", wraplength=650)
+        location_status.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+        location_status.bind("<Configure>", lambda event: location_status.configure(wraplength=max(160, event.width)))
+        self.help_close_button = ttk.Button(frame, text="关闭", command=top.destroy)
+        self.help_close_button.grid(row=2, column=0, sticky="e", pady=(8, 0))
+        self._refresh_help_locations()
         self._bind_shortcuts(top)
+
+    def _refresh_help_locations(self):
+        if self._help is None or not self._help.winfo_exists():
+            return
+        program = program_directory().resolve()
+        settings = self.preferences.path.resolve()
+        self.help_program_path.set(str(program))
+        self.help_settings_path.set(str(settings))
+        try:
+            program_state = "程序目录可用。" if program.is_dir() else "程序目录不存在或无法访问。"
+            if settings.is_file():
+                settings_state = "设置文件已存在。"
+            elif settings.exists():
+                settings_state = "设置路径当前不是文件，保存可能失败。"
+            elif settings.parent.is_dir():
+                settings_state = "设置文件尚未创建；保存界面偏好时创建。"
+            else:
+                settings_state = "设置目录尚不存在；保存界面偏好时创建。"
+            self.help_location_status.set(program_state + settings_state)
+        except OSError:
+            self.help_location_status.set("无法读取目录状态；你仍可复制上方完整路径。")
+
+    def _open_help_directory(self, directory, label):
+        self._refresh_help_locations()
+        try:
+            if not directory.is_dir():
+                self.help_location_status.set(label + "不存在或不是文件夹；未打开，也未创建目录。")
+                return
+            os.startfile(directory)
+        except AttributeError:
+            self.help_location_status.set("当前系统不支持自动打开目录，请复制上方路径后手动打开。")
+        except OSError as error:
+            self.help_location_status.set("无法打开" + label + "，请复制上方路径后手动打开。系统提示：" + str(error))
+        else:
+            self.help_location_status.set("已请求打开" + label + "。")
+
+    def open_program_directory(self):
+        self._open_help_directory(program_directory().resolve(), "程序目录")
+
+    def open_settings_directory(self):
+        self._open_help_directory(self.preferences.path.resolve().parent, "设置目录")
 
     def close(self):
         if self._closed:
