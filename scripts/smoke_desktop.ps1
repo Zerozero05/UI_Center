@@ -55,7 +55,12 @@ try {
             throw ("Frozen smoke did not exit in 60 seconds: " + $package.Name)
         }
         $timer.Stop()
-        if ($process.ExitCode -ne 0) { throw ("Frozen smoke failed: " + $package.Name + ", exit " + $process.ExitCode) }
+        if ($process.ExitCode -ne 0) {
+            if (Test-Path -LiteralPath $reportFile) {
+                Write-Host (Get-Content -LiteralPath $reportFile -Raw)
+            }
+            throw ("Frozen smoke failed: " + $package.Name + ", exit " + $process.ExitCode)
+        }
         $report = Get-Content -LiteralPath $reportFile -Raw | ConvertFrom-Json
         if ($report.status -ne 'passed' -or $report.version -ne $Version -or $report.commit -ne $SourceCommit -or $report.frozen -ne $true) {
             throw ("Frozen smoke identity/status mismatch: " + $package.Name)
