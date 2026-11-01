@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "components" / "tkinter"))
 
 from apps.desktop.app import BrowserApp, work_area
-from apps.desktop.catalog import ENTRIES, body_for, filter_entries, usage_for
+from apps.desktop.catalog import CORE_COMPONENTS, ENTRIES, body_for, filter_entries, usage_for
 from apps.desktop.previews import create_preview
 from apps.desktop.resources import REQUIRED_RESOURCES, ResourceStore
 from ui_center.feedback import EmptyState
@@ -337,9 +337,11 @@ class BrowserWidgetTests(unittest.TestCase):
 class BrowserCliTests(unittest.TestCase):
     def test_real_entry_smoke_report_and_exit_code(self):
         report = work_directory("cli-test-") / "report.json"
+        # This entry runs the full component/appearance acceptance. Use the
+        # same process watchdog as smoke_desktop.ps1, including slower runners.
         result = subprocess.run([sys.executable, "-B", str(ROOT / "apps" / "desktop" / "main.py"),
                                  "--smoke-test", str(report)], cwd=ROOT.parent,
-                                capture_output=True, text=True, timeout=20)
+                                capture_output=True, text=True, timeout=60)
         self.assertEqual(result.returncode, 0, result.stderr)
         data = json.loads(report.read_text(encoding="utf-8"))
         self.assertEqual(data["status"], "passed")
@@ -347,6 +349,13 @@ class BrowserCliTests(unittest.TestCase):
         self.assertFalse(data["frozen"])
         self.assertTrue(all(item["passed"] for item in data["checks"]))
         self.assertGreaterEqual(len(data["checks"]), 13)
+        checked = {item["name"] for item in data["checks"]}
+        expected = {"component_" + item[0] for item in CORE_COMPONENTS}
+        expected.update("appearance_" + theme + "_" + str(size)
+                        for theme in ("warm", "sage", "light", "dark")
+                        for size in (100, 125, 150))
+        expected.add("no_tk_callback_errors")
+        self.assertTrue(expected <= checked, "Incomplete smoke coverage: " + str(expected - checked))
 
 
 if __name__ == "__main__":
