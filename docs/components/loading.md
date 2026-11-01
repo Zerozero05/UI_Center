@@ -1,12 +1,16 @@
 # 加载与进度组件（Tkinter）
 
-这些组件只显示调用方提供的状态，不读取文件、不访问网络，也不创建业务任务。源码在 [loading.py](../../components/tkinter/ui_center/loading.py)，交互预览在 [previews_loading.py](../../apps/desktop/previews_loading.py)。本次未引入新的外部借鉴；沿用项目已有 Tk/ttk 主题和设计参数，无第三方运行依赖。
+这些组件只显示调用方提供的状态，不读取文件、不访问网络，也不创建业务任务。源码在 [loading.py](../../components/tkinter/ui_center/loading.py)，交互预览在 [previews_loading.py](../../apps/desktop/previews_loading.py)。v1.3.0统一细轨道、圆头圆环和圆角进度条；列表骨架长短分层，扫光仍限于占位内。新增参考、固定文件及逐项调整见[设计记录](../design-refresh.md)，无第三方运行依赖。
 
 把 `components/tkinter/ui_center/` 和 `tokens/design-tokens.json` 复制到消费项目；以下完整示例假设二者与脚本同级。所有方法在 Tk UI 线程调用；工作线程结果先通过消费应用已有的 UI 调度机制转交。
 
 共同接口：构造器必须传 `palette=`；`apply_palette(palette)` 只换颜色；`start()` / `stop()` 控制装饰状态；`set_visible(False)` 在页面隐藏时暂停装饰；`set_reduced_motion(True)` 保留静态状态和真实进度；`dispose()` 销毁组件。实际取消任务必须由调用方完成。组件不自动管理普通组件的 pack/grid 显隐，PageLoader 自己管理 stage 内的遮罩。
 
 每个组件最多持有一个待执行 `after`，间隔至少34ms（少于30fps，默认50ms）；隐藏、取消映射、销毁、停止或减少动画会取消装饰计时器。真实进度、说明和调用方输入保留。无需动画的确定进度不创建计时器。屏幕阅读器对 Tk Canvas 图形的支持取决于运行环境，重要业务状态还应写入应用现有文字反馈区。
+
+区域加载层的 `value` 已知时也不运行装饰计时器，圆环和文字直接反映真实值；`set_progress(None)` 恢复未知进度的等待指示。没有自动创建、取消或估计业务任务。原接口和示例继续适用。
+
+加载按钮将忙碌标记收在按钮内部；空闲时不预留一块空白图标区。忙碌时保持禁用及防重入，真实完成或取消后仍由调用方恢复。
 
 ## spinner
 

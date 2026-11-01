@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PYINSTALLER_VERSION = "6.22.3"
 ROOT_DATA = (
     "README.md", "AGENTS.md", "VALIDATION.md", "LICENSE",
-    "THIRD_PARTY_NOTICES.md", "CHANGELOG.md", "VERSION",
+    "THIRD_PARTY_NOTICES.md", "CHANGELOG.md", "VERSION", "DESIGN.md",
 )
 EXAMPLE_DATA = (
     "examples/tkinter/README.md", "examples/android/README.md",

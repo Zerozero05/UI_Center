@@ -23,7 +23,7 @@ from ui_center.feedback import EmptyState
 
 
 def work_directory(prefix):
-    parent = ROOT / "work" / "v1.2.3" / "browser"
+    parent = ROOT / "work" / "v1.3.0" / "browser"
     parent.mkdir(parents=True, exist_ok=True)
     return Path(tempfile.mkdtemp(prefix=prefix, dir=parent))
 
@@ -322,7 +322,9 @@ class BrowserWidgetTests(unittest.TestCase):
         self.root.update()
         self.assertAlmostEqual(text.yview()[0], before, places=2)
         self.assertEqual(ttk.Style(self.root).lookup("TNotebook.Tab", "background", ("selected",)),
-                         self.app.tokens["themes"]["dark"]["surface"])
+                         self.app.tokens["themes"]["dark"]["accent_soft"])
+        self.assertEqual(ttk.Style(self.root).lookup("TNotebook.Tab", "foreground", ("selected",)),
+                         self.app.tokens["themes"]["dark"]["accent"])
 
     def test_guidelines_are_not_presented_as_implemented_components(self):
         self.app.select_entry("pattern-files")

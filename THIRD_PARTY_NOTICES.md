@@ -1,5 +1,9 @@
 # 许可与第三方声明
 
+## v1.3.0 设计方法参考
+
+本轮参考Impeccable（Apache-2.0）、awesome-design-md（MIT）与Galaxy（MIT）的选定方法/视觉示例。固定提交、原许可及文件范围见[来源记录](references/sources.md#v130-设计参考)，具体采用与舍弃见[设计记录](docs/design-refresh.md)。没有复制HTML/CSS源码、上游Markdown段落、字体、图标、图片或脚本；新增Tk绘图、主题代码与说明由本项目编写，沿用AGPL-3.0-only。既有代码改编、原始版权及运行库许可继续保留。
+
 UI_Center 的代码采用 **GNU Affero General Public License version 3 only（SPDX：AGPL-3.0-only）**。完整许可见 [LICENSE](LICENSE)。本文件记录实际源码改编与方法参考，不替代上游许可。
 
 ## 已有源码的改编与署名

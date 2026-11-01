@@ -17,7 +17,7 @@ from apps.desktop.parameters import ParameterChoice
 
 class WorkbenchLayoutTests(unittest.TestCase):
     def setUp(self):
-        parent = ROOT / "work/v1.2.3/layout-tests"
+        parent = ROOT / "work/v1.3.0/layout-tests"
         parent.mkdir(parents=True, exist_ok=True)
         self.directory = Path(tempfile.mkdtemp(dir=parent))
         self.root = tk.Tk()

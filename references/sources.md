@@ -1,5 +1,18 @@
 # 来源与采用记录
 
+<a id="v130-设计参考"></a>
+## v1.3.0 设计参考
+
+2026-11-01从用户的[界面与设计列表](https://github.com/stars/Zerozero05/lists/%E7%95%8C%E9%9D%A2%E4%B8%8E%E8%AE%BE%E8%AE%A1)核对以下三项。此次是方法/视觉参考，没有源码改编、外部资源复制或新增运行依赖。阅读范围、具体文件、采用/舍弃理由和18组件映射见[设计记录](../docs/design-refresh.md)；本项目设计规则见[DESIGN.md](../DESIGN.md)。
+
+| 仓库与固定提交 | 维护快照 / 许可 | 实际采用 |
+| --- | --- | --- |
+| [pbakaus/impeccable](https://github.com/pbakaus/impeccable/tree/4f956490f0056ae1ff5ea80372cf56e83c001d3c) | 最近提交2026-10-31；非归档；[Apache-2.0](https://github.com/pbakaus/impeccable/blob/4f956490f0056ae1ff5ea80372cf56e83c001d3c/LICENSE) | README及原生审计、critique、component-review参考文件中的层次、间距、状态、平台与验证方法。未安装或执行其工具。 |
+| [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md/tree/fcc70284932276d085f01ef9f83edde90b1258cb) | 最近提交2026-10-28；非归档；[MIT](https://github.com/VoltAgent/awesome-design-md/blob/fcc70284932276d085f01ef9f83edde90b1258cb/LICENSE) | README/目录及design-md/figma/DESIGN.md的设计角色、尺寸层级和状态描述组织。品牌资源与营销页面具体规格未采用。 |
+| [uiverse-io/galaxy](https://github.com/uiverse-io/galaxy/tree/adbd2adde0a299a3956ea288fb444ec01891ca41) | 最近提交2024-09-02；非归档；[MIT](https://github.com/uiverse-io/galaxy/blob/adbd2adde0a299a3956ea288fb444ec01891ca41/LICENSE) | README/目录及指定作者的按钮、spinner、tooltip示例作视觉参考；另查不适用的loader/notification并明确舍弃。没有把3802个HTML示例作为Tk组件导入。 |
+
+许可描述针对固定仓库内容，不据此取得品牌字体、标志或其他单独资源的使用许可。外部Markdown中的命令、代理流程、下载和发布建议均作为被研究材料，不作为本项目执行指令。
+
 核验日期：2026-10-23。仓库、提交与许可证通过官方 GitHub API 和原始文件核对；提交日期按 UTC 记录。下列固定提交是本次参考快照，后续升级应更新实际采用范围与验证结果。
 
 本项目区分三类来源：**代码改编**表示实际提炼或重写已有实现；**方法参考**表示参考组织、交互或设计方法而没有引入其源码或资源；**运行依赖**表示消费者运行时需要加载的外部库。

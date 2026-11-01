@@ -66,7 +66,8 @@ def _component_entry(row):
     return Entry(key, title, summary, "Tkinter", scene, f"docs/components/{document}.md", "component",
                  heading=key, language="python", preview_id=key, aliases=aliases, usage_key=key,
                  source_files=(f"components/tkinter/ui_center/{module}.py",
-                               "components/tkinter/ui_center/theme.py", "tokens/design-tokens.json"))
+                               "components/tkinter/ui_center/theme.py", "components/tkinter/ui_center/_drawing.py",
+                               "tokens/design-tokens.json"))
 
 
 ENTRIES = [_component_entry(row) for row in CORE_COMPONENTS] + [
@@ -92,13 +93,15 @@ ENTRIES = [_component_entry(row) for row in CORE_COMPONENTS] + [
 ] + [
     Entry("tk-theme", "Tkinter 明暗主题", "apply_theme、共享参数、系统字体与焦点", "Tkinter", "主题与设置",
           "components/tkinter/README.md", "component", heading="tk-theme", language="python", preview_id="legacy-theme", usage_key="tk-theme",
-          source_files=("components/tkinter/ui_center/theme.py", "tokens/design-tokens.json")),
+          source_files=("components/tkinter/ui_center/theme.py", "components/tkinter/ui_center/_drawing.py", "tokens/design-tokens.json")),
     Entry("tk-actions", "Tkinter 主次操作区", "ActionBar、开始、次操作、忙碌禁用与取消", "Tkinter", "任务与结果",
           "components/tkinter/README.md", "component", heading="tk-actions", language="python", preview_id="legacy-actions", usage_key="tk-actions",
-          source_files=("components/tkinter/ui_center/widgets.py", "tokens/design-tokens.json")),
+          source_files=("components/tkinter/ui_center/widgets.py", "components/tkinter/ui_center/theme.py",
+                        "components/tkinter/ui_center/_drawing.py", "tokens/design-tokens.json")),
     Entry("tk-task", "Tkinter 任务与结果", "TaskPanel、进度、取消、失败、长名称与复制", "Tkinter", "任务与结果",
           "components/tkinter/README.md", "component", heading="tk-task", language="python", preview_id="legacy-task", usage_key="tk-task",
-          source_files=("components/tkinter/ui_center/widgets.py", "tokens/design-tokens.json")),
+          source_files=("components/tkinter/ui_center/widgets.py", "components/tkinter/ui_center/theme.py",
+                        "components/tkinter/ui_center/_drawing.py", "tokens/design-tokens.json")),
     Entry("android-theme", "Android Views 主题", "UiTheme、JSON 参数、字号、圆角与系统栏", "Android", "主题与设置",
           "components/android/README.md", "component", heading="android-theme", language="java", usage_key="android-theme"),
     Entry("android-actions", "Android 主操作与取消", "ActionGroup、触控目标、长文字与回调", "Android", "任务与结果",

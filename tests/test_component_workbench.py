@@ -38,7 +38,7 @@ COMPONENTS = {
 
 
 def work_directory(prefix):
-    parent = ROOT / "work" / "v1.2.3" / "workbench"
+    parent = ROOT / "work" / "v1.3.0" / "workbench"
     parent.mkdir(parents=True, exist_ok=True)
     return Path(tempfile.mkdtemp(prefix=prefix, dir=parent))
 

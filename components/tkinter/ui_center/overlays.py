@@ -138,7 +138,9 @@ class _Overlay:
         options = {"text": text, "justify": "left", "anchor": "w", "wraplength": 420}
         label = (ttk.Label(self.content, style="UIC.Heading.TLabel", **options) if heading
                  else tk.Label(self.content, font="TkDefaultFont", **options))
-        label.pack(fill="x", pady=(0, 16))
+        label.pack(fill="x", pady=(0, 8 if heading else 16))
+        if heading:
+            ttk.Separator(self.content).pack(fill="x", pady=(0, 16))
         label.bind("<Configure>", lambda event: label.configure(wraplength=max(100, event.width - 4)))
         self._colors.append(label)
         self.apply_palette(self.palette)
@@ -232,7 +234,8 @@ class Dialog(_Overlay):
             return False
         self._label(self.title, heading=True)
         self._label(self.message)
-        self.close_button = ttk.Button(self.content, text=self.close_text, command=self.close)
+        self.close_button = ttk.Button(self.content, text=self.close_text, command=self.close,
+                                        style="UIC.Primary.TButton")
         self.close_button.pack(anchor="e")
         self._present(focus=self.close_button)
         return True
@@ -256,7 +259,8 @@ class ConfirmDialog(_Overlay):
         self._label(self.message)
         actions = ttk.Frame(self.content)
         actions.pack(fill="x")
-        self.confirm_button = ttk.Button(actions, text=self.confirm_text, command=self.confirm)
+        self.confirm_button = ttk.Button(actions, text=self.confirm_text, command=self.confirm,
+                                          style="UIC.Primary.TButton")
         self.confirm_button.pack(side="right")
         self.cancel_button = ttk.Button(actions, text=self.cancel_text, command=lambda: self.close("cancel"))
         self.cancel_button.pack(side="right", padx=(0, 8))
@@ -306,7 +310,8 @@ class Drawer(_Overlay):
         self._label(self.title, heading=True)
         self._label(self.message)
         self._build_content(self.content_factory)
-        self.close_button = ttk.Button(self.content, text="关闭面板", command=self.close)
+        self.close_button = ttk.Button(self.content, text="关闭面板", command=self.close,
+                                        style="UIC.Secondary.TButton")
         self.close_button.pack(side="bottom", anchor="e", pady=(16, 0))
         owner = self.master.winfo_toplevel()
         owner.update_idletasks()
@@ -354,7 +359,8 @@ class Popover(_Overlay):
             return False
         self._label(self.text)
         self._build_content(self.content_factory)
-        self.close_button = ttk.Button(self.content, text="关闭", command=self.close)
+        self.close_button = ttk.Button(self.content, text="关闭", command=self.close,
+                                        style="UIC.Secondary.TButton")
         self.close_button.pack(anchor="e")
         x, y = self.anchor.winfo_rootx(), self.anchor.winfo_rooty() + self.anchor.winfo_height()
         self._present(focus=self.close_button, geometry=f"+{max(0, x)}+{max(0, y)}")
@@ -419,10 +425,11 @@ class Tooltip(_Overlay):
         if not self._create(trigger or self.master, modal=False, decorated=False, interactive=False):
             return False
         self._label(self.text)
+        self._colors[-1].configure(wraplength=280)
         self._colors[-1].pack_configure(pady=0)
         self.window.attributes("-topmost", True)
         x = self.master.winfo_rootx()
-        y = self.master.winfo_rooty() + self.master.winfo_height() + 4
+        y = self.master.winfo_rooty() + self.master.winfo_height() + 8
         self._present(geometry=f"+{max(0, x)}+{max(0, y)}")
         return True
 

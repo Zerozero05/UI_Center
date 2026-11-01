@@ -7,6 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import math
 import tkinter as tk
 from tkinter import ttk
+from ._drawing import ring, rounded_rect
 
 
 def _progress(value, maximum):
@@ -142,11 +143,10 @@ class Spinner(_AnimatedFrame):
         p, size = self.palette, self.size
         self.canvas.configure(background=p["background"])
         self.canvas.delete("all")
-        width = max(2, size / 10)
+        width = max(2, size / 12)
         bounds = (width, width, size - width, size - width)
-        self.canvas.create_oval(*bounds, outline=p["border"], width=width)
-        self.canvas.create_arc(*bounds, start=90 - self._phase * 12,
-                               extent=100, style="arc", outline=p["accent"], width=width)
+        ring(self.canvas, bounds, track=p["hover"], color=p["accent"], width=width,
+             start=90 - self._phase * 9, extent=100)
 
 
 class ProgressBar(_AnimatedFrame):
@@ -188,17 +188,16 @@ class ProgressBar(_AnimatedFrame):
             width = int(self.canvas.cget("width"))
         self.canvas.configure(background=p["background"])
         self.canvas.delete("all")
-        self.canvas.create_rectangle(1, 1, width - 1, 17, fill=p["input_background"], outline=p["border"])
+        rounded_rect(self.canvas, (1, 4, width-1, 14), 5, fill=p["hover"], outline="")
         if self.mode == "determinate":
-            end = 2 + (width - 4) * self.value / self.maximum
+            end = 1 + (width - 2) * self.value / self.maximum
             if self.value:
-                self.canvas.create_rectangle(2, 2, end, 16, fill=p["accent"], outline="")
+                rounded_rect(self.canvas, (1, 4, end, 14), 5, fill=p["accent"], outline="")
             self.caption.configure(text=f"{self.value / self.maximum:.0%}")
         else:
             fraction = 0.35 if self.reduced_motion else (self._phase % 40) / 40
             start = 2 + max(0, width - 4) * 0.7 * fraction
-            self.canvas.create_rectangle(start, 2, start + (width - 4) * 0.3, 16,
-                                         fill=p["accent"], outline="")
+            rounded_rect(self.canvas, (start, 4, start+(width-4)*0.3, 14), 5, fill=p["accent"], outline="")
             self.caption.configure(text="进度未知 · 正在处理" if self.running else "进度未知")
 
 
@@ -231,13 +230,8 @@ class CircularProgress(_AnimatedFrame):
         self.canvas.configure(background=p["background"])
         self.canvas.delete("all")
         bounds = (7, 7, size - 7, size - 7)
-        self.canvas.create_oval(*bounds, outline=p["border"], width=6)
-        if self.value:
-            if self.value == self.maximum:
-                self.canvas.create_oval(*bounds, outline=p["accent"], width=6)
-            else:
-                self.canvas.create_arc(*bounds, start=90, extent=-360 * self.value / self.maximum,
-                                       style="arc", outline=p["accent"], width=6)
+        ring(self.canvas, bounds, track=p["hover"], color=p["accent"], width=6,
+             start=90, extent=-360*self.value/self.maximum)
         self.canvas.create_text(size / 2, size / 2, text=f"{self.value / self.maximum:.0%}",
                                 fill=p["foreground"], font="TkDefaultFont")
 
@@ -293,8 +287,8 @@ class Skeleton(_AnimatedFrame):
         for row in range(self.rows):
             y = row * 48 + 4
             shapes.extend((("oval", (4, y, 36, y + 32)),
-                           ("rectangle", (48, y + 2, width - 4, y + 13)),
-                           ("rectangle", (48, y + 22, width * 0.7, y + 31))))
+                           ("rectangle", (48, y + 2, 48 + (width-52)*(1, .86, .94)[row % 3], y + 13)),
+                           ("rectangle", (48, y + 22, 48 + (width-52)*(.58, .7, .48)[row % 3], y + 30))))
         return shapes
 
     def _placeholder_color(self):
@@ -382,10 +376,9 @@ class LoadingButton(_AnimatedFrame):
         self.text, self.busy_text = str(text), str(busy_text)
         self.command = command
         self.busy = False
-        self.canvas = tk.Canvas(self, width=24, height=24, highlightthickness=0, takefocus=False)
-        self.canvas.grid(row=0, column=0, padx=(0, 8))
         self.button = ttk.Button(self, text=self.text, command=self._invoke, style="UIC.Primary.TButton")
-        self.button.grid(row=0, column=1)
+        self.button.grid(row=0, column=0)
+        self.canvas = tk.Canvas(self.button, width=24, height=24, highlightthickness=0, takefocus=False)
         self._draw()
 
     def _invoke(self):
@@ -414,13 +407,16 @@ class LoadingButton(_AnimatedFrame):
 
     def _draw(self):
         p = self.palette
-        self.button.configure(text=self.busy_text if self.busy else self.text)
+        self.button.configure(text=self.busy_text if self.busy else self.text,
+                               padding=(44, 8, 12, 8) if self.busy else (12, 8))
         self.canvas.configure(background=p["background"])
         self.canvas.delete("all")
         if self.busy:
-            self.canvas.create_oval(4, 4, 20, 20, outline=p["border"], width=2)
-            self.canvas.create_arc(4, 4, 20, 20, start=90 - self._phase * 12,
-                                   extent=110, style="arc", outline=p["accent"], width=2)
+            self.canvas.place(x=12, rely=.5, anchor="w", bordermode="outside")
+            ring(self.canvas, (4, 4, 20, 20), track=p["hover"], color=p["accent"], width=2,
+                 start=90-self._phase*9, extent=110)
+        else:
+            self.canvas.place_forget()
 
 
 class PageLoader(_AnimatedFrame):
@@ -446,7 +442,7 @@ class PageLoader(_AnimatedFrame):
         self.progress_label.grid(row=3, column=0, sticky="ew")
         self.cancel_button = None
         if on_cancel is not None:
-            self.cancel_button = ttk.Button(self, text="取消", command=on_cancel)
+            self.cancel_button = ttk.Button(self, text="取消", command=on_cancel, style="UIC.Secondary.TButton")
             self.cancel_button.grid(row=4, column=0, pady=10)
         self.bind("<Configure>", lambda event: self.caption.configure(wraplength=max(80, event.width - 40)), add="+")
         self._draw()
@@ -463,6 +459,10 @@ class PageLoader(_AnimatedFrame):
         else:
             self.value, self.maximum = _progress(value, maximum)
         self._draw()
+        self._sync_animation()
+
+    def _animate_enabled(self):
+        return self.value is None
 
     def start(self):
         if self._visible:
@@ -486,7 +486,7 @@ class PageLoader(_AnimatedFrame):
         p = self.palette
         self.canvas.configure(background=p["background"])
         self.canvas.delete("all")
-        self.canvas.create_oval(5, 5, 43, 43, outline=p["border"], width=4)
-        self.canvas.create_arc(5, 5, 43, 43, start=90 - self._phase * 12,
-                               extent=100, style="arc", outline=p["accent"], width=4)
+        ring(self.canvas, (5, 5, 43, 43), track=p["hover"], color=p["accent"], width=3,
+             start=90-self._phase*9 if self.value is None else 90,
+             extent=100 if self.value is None else -360*self.value/self.maximum)
         self.progress_label.configure(text="进度未知" if self.value is None else f"{self.value / self.maximum:.0%}")

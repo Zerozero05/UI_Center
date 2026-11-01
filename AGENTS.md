@@ -5,7 +5,7 @@
 ## 阅读顺序
 
 1. README 的平台/场景索引及 VALIDATION.md。
-2. docs/design-guide.md 与对应交互模式。
+2. DESIGN.md、docs/design-guide.md 与对应交互模式；本轮风格及固定借鉴映射见docs/design-refresh.md。
 3. 平台组件、示例及复制说明。
    Tkinter具体控件先查docs/components对应类别，区分中文用法、可运行示例与完整组件源码；不要把规范条目当成已有实现。
 4. references/sources.md 与 THIRD_PARTY_NOTICES.md。

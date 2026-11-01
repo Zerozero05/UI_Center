@@ -1,5 +1,7 @@
 # UI 设计规范
 
+UI_Center工作台本身的当前设计约定见[DESIGN.md](../DESIGN.md)，本轮三仓库参考及18组件映射见[设计记录](design-refresh.md)。下列规范继续作为消费项目的通用建议。
+
 用途：为 Tkinter、Android 与未来 Web 实现提供共同的判断依据。这里的原则结合了[既有应用案例](cases.md)与[已核实来源](../references/sources.md)；具体组件能力和验证范围按平台说明执行。
 
 ## 视觉层次

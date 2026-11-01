@@ -10,13 +10,20 @@ SPDX-License-Identifier: AGPL-3.0-only
 import json
 from pathlib import Path
 from tkinter import font as tkfont, ttk
+from ._drawing import blend, button_layouts
 
 
 def load_tokens(path=None):
     """Load the shared source; copied consumers should pass their own path."""
     source = Path(path) if path is not None else Path(__file__).resolve().parents[3] / "tokens" / "design-tokens.json"
     with source.open(encoding="utf-8") as stream:
-        return json.load(stream)
+        tokens = json.load(stream)
+    # Older consumer token files remain readable. New decorative roles never
+    # replace the existing control border, text or keyboard-focus roles.
+    for palette in tokens["themes"].values():
+        palette.setdefault("divider", blend(palette["border"], palette["background"], .72))
+        palette.setdefault("accent_soft", blend(palette["background"], palette["accent"], .09))
+    return tokens
 
 
 def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
@@ -58,10 +65,13 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
         "TLabel": {"configure": {"background": p["background"], "foreground": p["foreground"]}},
         "UIC.Heading.TLabel": {"configure": {"font": heading}},
         "UIC.Muted.TLabel": {"configure": {"foreground": p["muted"], "font": small}},
+        "UIC.Badge.TLabel": {"configure": {"background": p["accent_soft"], "foreground": p["accent"],
+                                             "font": small, "padding": (8, 4)}},
+        "TSeparator": {"configure": {"background": p["divider"]}},
         "UIC.Success.TLabel": {"configure": {"foreground": p["success"]}},
         "UIC.Warning.TLabel": {"configure": {"foreground": p["warning"]}},
         "UIC.Error.TLabel": {"configure": {"foreground": p["error"]}},
-        "TLabelframe": {"configure": {"background": p["background"], "bordercolor": p["border"]}},
+        "TLabelframe": {"configure": {"background": p["background"], "bordercolor": p["divider"]}},
         "TLabelframe.Label": {"configure": {"background": p["background"], "foreground": p["foreground"]}},
         "TButton": {
             "configure": {"padding": (gap["md"], gap["sm"]), "background": p["surface"],
@@ -86,12 +96,13 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
                     "darkcolor": [("focus", p["focus"]), ("!focus", p["surface"])]},
         },
         "TEntry": {
-            "configure": {"padding": gap["xs"], "insertcolor": p["foreground"]},
+            "configure": {"padding": (gap["sm"], gap["xs"]), "insertcolor": p["foreground"], "borderwidth": 1},
             "map": {"foreground": disabled, "fieldbackground": [("disabled", p["background"])],
                     "bordercolor": edge, "lightcolor": edge, "darkcolor": edge},
         },
         "TCombobox": {
-            "configure": {"padding": gap["xs"], "background": p["surface"], "arrowcolor": p["foreground"]},
+            "configure": {"padding": (gap["sm"], gap["xs"]), "background": p["surface"],
+                          "arrowcolor": p["muted"], "arrowsize": 13, "borderwidth": 1},
             "map": {"foreground": disabled,
                     "fieldbackground": [("disabled", p["background"]), ("readonly", p["input_background"])],
                     "selectbackground": [("readonly", p["selected_background"])],
@@ -100,14 +111,15 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
                     "arrowcolor": disabled},
         },
         "TScrollbar": {
-            "configure": {"background": p["surface"], "troughcolor": p["background"],
+            "configure": {"background": p["divider"], "troughcolor": p["background"],
                           "arrowcolor": p["foreground"], "width": max(10, round(10 * font_scale))},
             "map": {"background": [("active", p["hover"])]},
         },
         "Treeview": {
             "configure": {"background": p["surface"], "fieldbackground": p["surface"],
-                          "foreground": p["foreground"], "rowheight": body_font.metrics("linespace") + gap["sm"],
-                          "borderwidth": 0, "relief": "flat"},
+                          "foreground": p["foreground"], "rowheight": body_font.metrics("linespace") + gap["md"],
+                          "borderwidth": 0, "relief": "flat", "bordercolor": p["surface"],
+                          "lightcolor": p["surface"], "darkcolor": p["surface"]},
             "map": {"background": [("selected", p["selected_background"])],
                     "foreground": [("selected", p["selected_foreground"])]},
         },
@@ -116,7 +128,25 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
             "map": {"background": [("active", p["surface"])]},
         },
         "Horizontal.TProgressbar": {"configure": {"background": p["accent"],
-            "troughcolor": p["input_background"], "bordercolor": p["border"]}},
+            "troughcolor": p["hover"], "bordercolor": p["hover"], "lightcolor": p["accent"],
+            "darkcolor": p["accent"], "thickness": 8}},
+        "TNotebook": {"configure": {"background": p["background"], "bordercolor": p["divider"], "borderwidth": 0,
+                                      "lightcolor": p["divider"], "darkcolor": p["divider"],
+                                      "tabmargins": (0, 0, 0, 6)}},
+        "TNotebook.Tab": {"configure": {"padding": (12, 8), "background": p["background"],
+                                          "foreground": p["muted"], "bordercolor": p["divider"],
+                                          "lightcolor": p["background"], "darkcolor": p["divider"],
+                                          "focuscolor": p["focus"]},
+                          "map": {"background": [("selected", p["accent_soft"]), ("active", p["hover"])],
+                                  "foreground": [("selected", p["accent"])],
+                                  "lightcolor": [("selected", p["accent_soft"])],
+                                  "bordercolor": [("selected", p["accent_soft"])],
+                                  "darkcolor": [("selected", p["accent_soft"])]}},
+        "UIC.Navigation.Treeview": {"configure": {"background": p["background"], "fieldbackground": p["background"],
+                                                   "bordercolor": p["background"], "lightcolor": p["background"],
+                                                   "darkcolor": p["background"]},
+                                    "map": {"background": [("selected", p["accent_soft"])],
+                                            "foreground": [("selected", p["accent"])]}},
     }
     style = ttk.Style(root)
     name = "uicenter_" + mode
@@ -125,6 +155,7 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
     else:
         style.theme_create(name, parent="clam", settings=settings)
     style.theme_use(name)
+    button_layouts(root, style, p, tokens["radii"]["control"])
     for direction, sticky in (("Vertical", "ns"), ("Horizontal", "ew")):
         style.layout(direction + ".TScrollbar", [(direction + ".Scrollbar.trough", {
             "sticky": sticky, "children": [(direction + ".Scrollbar.thumb", {"expand": "1", "sticky": "nswe"})]})])

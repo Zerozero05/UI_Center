@@ -18,7 +18,7 @@ class ParameterChoice(ttk.Frame):
             button = tk.Radiobutton(self, text=label, value=str(index), variable=self._display,
                 indicatoron=False, command=lambda v=value: self.select(v), font="TkDefaultFont",
                 relief="flat", borderwidth=0, padx=8, pady=6, highlightthickness=2, takefocus=False)
-            button.grid(row=0, column=index, sticky="nsew")
+            button.grid(row=0, column=index, sticky="nsew", padx=(0 if index == 0 else 2, 0))
             self.columnconfigure(index, weight=1, uniform="choice")
             self.buttons[value] = button
             for sequence, step in (("<Left>", -1), ("<Right>", 1), ("<Up>", -1),
@@ -92,11 +92,12 @@ class ParameterChoice(ttk.Frame):
         selected = self.variable.get()
         for value, button in self.buttons.items():
             active = selected == value
-            background = palette["selected_background"] if active and self.enabled else palette["hover"] if active else palette["surface"]
-            foreground = palette["selected_foreground"] if active and self.enabled else palette["foreground"]
+            background = palette["accent_soft"] if active and self.enabled else palette["hover"] if active else palette["surface"]
+            foreground = palette["accent"] if active and self.enabled else palette["foreground"]
             button.configure(background=background, foreground=foreground, selectcolor=background,
                 activebackground=background if active else palette["hover"], activeforeground=foreground,
-                disabledforeground=palette["disabled"], highlightbackground=palette["surface"],
+                disabledforeground=palette["disabled"],
+                highlightbackground=palette["accent"] if active and self.enabled else palette["divider"],
                 highlightcolor=palette["focus"])
 
 

@@ -190,8 +190,8 @@ class NavigationFeedbackTests(unittest.TestCase):
                 self.assertEqual(int(other.cget("borderwidth")), 0)
                 self.assertEqual(other.cget("relief"), "flat")
                 self.assertEqual(other.cget("background"), palette["surface"])
-                self.assertEqual(selected.cget("background"), palette["selected_background"])
-                self.assertEqual(selected.cget("foreground"), palette["selected_foreground"])
+                self.assertEqual(selected.cget("background"), palette["accent_soft"])
+                self.assertEqual(selected.cget("foreground"), palette["accent"])
                 other.event_generate("<Enter>")
                 self.root.update()
                 self.assertEqual(other.cget("background"), palette["hover"])
@@ -211,7 +211,7 @@ class NavigationFeedbackTests(unittest.TestCase):
             self.assertEqual(component.select(), "second")
         accordion.set_expanded("second")
         self.assertEqual(accordion._buttons["first"].cget("background"), palette["surface"])
-        self.assertEqual(accordion._buttons["second"].cget("background"), palette["selected_background"])
+        self.assertEqual(accordion._buttons["second"].cget("background"), palette["accent_soft"])
 
     def test_inline_alert_persists_readable_text_and_action(self):
         calls = []

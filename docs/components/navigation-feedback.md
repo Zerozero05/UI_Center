@@ -1,5 +1,7 @@
 # 导航与反馈组件（Tkinter）
 
+v1.3.0统一轻分隔、页签/分段间距与状态配色，参数采用浅选中面；反馈用加粗标题和窄侧线标识语义，空状态使用无外部资源的Canvas小图。原键盘、回调、Text复制与长文滚动保持。借鉴文件及逐项映射见[设计记录](../design-refresh.md)。
+
 工作台中的布尔参数和固定二选一使用文字分段，三项以上使用中文下拉选项；参数区、操作区与预览区分开显示。“重置”恢复本组件参数，不改变主题、字号或动画偏好。界面显示“提示、成功、警告、错误”等中文，复制的代码仍使用组件原有的 `info/success/warning/error` 标识；页签、展开项、选择值和关闭原因的示例反馈也使用中文。
 
 这些组件仅呈现调用方的数据并发出回调；不会处理文件、访问网络或保存设置。实现使用 Python 标准库 Tk/ttk，沿用仓库 [设计规范](../design-guide.md) 和共享 [tokens](../../tokens/README.md)，没有新增第三方运行依赖或外部源码改编。源文件：[navigation.py](../../components/tkinter/ui_center/navigation.py)、[feedback.py](../../components/tkinter/ui_center/feedback.py)。

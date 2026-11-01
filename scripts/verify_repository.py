@@ -36,7 +36,7 @@ def main():
         errors.append('Light/dark semantic roles differ')
     required = {'background', 'surface', 'foreground', 'muted', 'border', 'accent',
                 'accent_active', 'selected_background', 'selected_foreground',
-                'input_background', 'hover', 'disabled', 'success', 'warning', 'error', 'focus'}
+                'input_background', 'hover', 'disabled', 'success', 'warning', 'error', 'focus', 'divider', 'accent_soft'}
     for mode, colors in palettes.items():
         if set(colors) != required:
             errors.append(f'{mode}: missing/unexpected color roles')
@@ -44,7 +44,7 @@ def main():
             if not re.fullmatch(r'#[0-9a-fA-F]{6}', value):
                 errors.append(f'{mode}.{key}: invalid RGB color')
         pairs = [('foreground', 'surface'), ('foreground', 'background'), ('muted', 'surface'),
-                 ('selected_foreground', 'selected_background'), ('success', 'surface'),
+                 ('selected_foreground', 'selected_background'), ('accent', 'accent_soft'), ('success', 'surface'),
                  ('warning', 'surface'), ('error', 'surface')]
         for foreground, background in pairs:
             a, b = sorted((luminance(colors[foreground]), luminance(colors[background])))
@@ -63,7 +63,7 @@ def main():
             if tokens['typography'][role][unit] <= 0:
                 errors.append(f'{role}.{unit}: non-positive font size')
 
-    documents = [ROOT / name for name in ('README.md', 'AGENTS.md', 'CHANGELOG.md',
+    documents = [ROOT / name for name in ('README.md', 'AGENTS.md', 'CHANGELOG.md', 'DESIGN.md',
                   'VALIDATION.md', 'THIRD_PARTY_NOTICES.md')]
     for folder in ('docs', 'components', 'examples', 'references', 'tokens', 'apps', 'packaging'):
         documents.extend(path for path in (ROOT / folder).rglob('*.md')

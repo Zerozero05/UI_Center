@@ -214,7 +214,8 @@ class BrowserApp:
         self.search_label.pack(side="left", padx=(0, g["sm"]))
         self.search_entry = ttk.Entry(search, textvariable=self.query)
         self.search_entry.pack(side="left", fill="x", expand=True)
-        self.clear_search_button = ttk.Button(search, text="清空关键词", command=self.clear_search)
+        self.clear_search_button = ttk.Button(search, text="清空关键词", command=self.clear_search,
+                                             style="UIC.Secondary.TButton")
         self.clear_search_button.pack(side="left", padx=(g["sm"], 0))
         self.panes = ttk.Panedwindow(shell, orient="horizontal")
         self.panes.grid(row=2, column=0, sticky="nsew")
@@ -234,7 +235,8 @@ class BrowserApp:
         ttk.Label(navigation, textvariable=self.count, style="UIC.Muted.TLabel").pack(anchor="w", pady=(0, 4))
         results = ttk.Frame(navigation)
         results.pack(fill="both", expand=True)
-        self.entries = ttk.Treeview(results, show="tree", selectmode="browse", height=10)
+        self.entries = ttk.Treeview(results, show="tree", selectmode="browse", height=10,
+                                    style="UIC.Navigation.Treeview")
         self.entries.column("#0", width=215, minwidth=130, stretch=True)
         scroll = AutoScrollbar(results, orient="vertical", command=self.entries.yview)
         self.entries.configure(yscrollcommand=scroll.set)
@@ -248,7 +250,7 @@ class BrowserApp:
         titlebar.columnconfigure(0, weight=1)
         self.title = ttk.Label(titlebar, style="UIC.Heading.TLabel", wraplength=700)
         self.title.grid(row=0, column=0, sticky="ew")
-        self.platform_badge = ttk.Label(titlebar, style="UIC.Muted.TLabel")
+        self.platform_badge = ttk.Label(titlebar, style="UIC.Badge.TLabel")
         self.platform_badge.grid(row=0, column=1, sticky="e", padx=(8, 0))
         self.boundary = ttk.Label(self.content, style="UIC.Muted.TLabel", wraplength=700)
         self.boundary.grid(row=1, column=0, sticky="ew", pady=(2, 4))
@@ -271,7 +273,7 @@ class BrowserApp:
         for i, button in enumerate((self.copy_usage_button, self.copy_ai_button, self.preview_button, self.source_button)):
             button.pack(fill="x")
         self.source_label = ttk.Label(self.content, style="UIC.Muted.TLabel")
-        self.source_label.grid(row=5, column=0, sticky="w")
+        self.source_label.grid(row=5, column=0, sticky="w", pady=(4, 0))
         self.empty_state = EmptyState(self.content, palette=self.palette, kind="no-results",
                                       title="没有找到匹配条目", action_text="显示本类全部",
                                       on_action=self.show_section_entries)
@@ -593,10 +595,6 @@ class BrowserApp:
             style = ttk.Style(self.root)
             style.configure("TRadiobutton", background=palette["background"], foreground=palette["foreground"])
             style.configure("TCheckbutton", background=palette["background"], foreground=palette["foreground"])
-            style.configure("TNotebook", background=palette["background"], bordercolor=palette["surface"], borderwidth=0)
-            style.configure("TNotebook.Tab", background=palette["background"], foreground=palette["muted"], padding=(8, 6))
-            style.map("TNotebook.Tab", background=[("selected", palette["surface"]), ("active", palette["hover"])],
-                      foreground=[("selected", palette["foreground"])])
             self._resize_text()
             if save:
                 self.preferences.save({"theme": self.theme.get(), "font_scale": self.font_scale.get(), "motion": self.motion.get()})

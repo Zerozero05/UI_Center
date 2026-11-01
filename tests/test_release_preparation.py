@@ -18,35 +18,35 @@ spec.loader.exec_module(release)
 
 class ReleaseEvidenceTests(unittest.TestCase):
     def setUp(self):
-        parent = ROOT / "work/v1.2.3/release-evidence-tests"
+        parent = ROOT / "work/v1.3.0/release-evidence-tests"
         parent.mkdir(parents=True, exist_ok=True)
         self.folder = Path(tempfile.mkdtemp(dir=parent))
         self.commit = "1" * 40
         self.artifacts = []
-        for mode, name in (("portable", "UI_Center_v1.2.3_Windows_x64_Portable.zip"),
-                           ("single", "UI_Center_v1.2.3_Windows_x64.exe")):
+        for mode, name in (("portable", "UI_Center_v1.3.0_Windows_x64_Portable.zip"),
+                           ("single", "UI_Center_v1.3.0_Windows_x64.exe")):
             path = self.folder / name
             path.write_bytes(("fixture:" + mode).encode())
             artifact = {"name": name, "bytes": path.stat().st_size,
                         "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
             self.artifacts.append(artifact)
             for prefix in ("", "relocated-"):
-                self.write("smoke-" + prefix + mode + ".json", {"status": "passed", "version": "1.2.3",
+                self.write("smoke-" + prefix + mode + ".json", {"status": "passed", "version": "1.3.0",
                            "commit": self.commit, "frozen": True, "checks": [{"name": "fixture", "passed": True}],
                            "artifact": artifact})
-        self.write("verify-desktop-report.json", {"status": "package_integrity_passed", "version": "1.2.3",
+        self.write("verify-desktop-report.json", {"status": "package_integrity_passed", "version": "1.3.0",
                    "commit": self.commit, "artifacts": self.artifacts})
 
     def write(self, name, contents):
         (self.folder / name).write_text(json.dumps(contents), encoding="utf-8")
 
     def test_matching_evidence_accepts_exact_bytes(self):
-        self.assertEqual(len(release.validate_runtime_reports(self.folder, "1.2.3", self.commit)), 2)
+        self.assertEqual(len(release.validate_runtime_reports(self.folder, "1.3.0", self.commit)), 2)
 
     def test_replaced_executable_is_rejected(self):
         (self.folder / self.artifacts[1]["name"]).write_bytes(b"replacement")
         with self.assertRaisesRegex(ValueError, "artifact hash/size mismatch"):
-            release.validate_runtime_reports(self.folder, "1.2.3", self.commit)
+            release.validate_runtime_reports(self.folder, "1.3.0", self.commit)
 
     def test_stale_smoke_is_rejected_even_if_integrity_is_current(self):
         path = self.folder / "smoke-portable.json"
@@ -54,7 +54,7 @@ class ReleaseEvidenceTests(unittest.TestCase):
         smoke["artifact"]["sha256"] = "0" * 64
         self.write(path.name, smoke)
         with self.assertRaisesRegex(ValueError, "not bound to these artifact bytes"):
-            release.validate_runtime_reports(self.folder, "1.2.3", self.commit)
+            release.validate_runtime_reports(self.folder, "1.3.0", self.commit)
 
     def test_previous_release_report_cannot_approve_the_new_candidate(self):
         path = self.folder / "verify-desktop-report.json"
@@ -62,7 +62,7 @@ class ReleaseEvidenceTests(unittest.TestCase):
         report["version"] = "1.2.2"
         self.write(path.name, report)
         with self.assertRaisesRegex(ValueError, "integrity report identity/status"):
-            release.validate_runtime_reports(self.folder, "1.2.3", self.commit)
+            release.validate_runtime_reports(self.folder, "1.3.0", self.commit)
 
     def test_other_commit_smoke_cannot_approve_matching_runtime_bytes(self):
         path = self.folder / "smoke-single.json"
@@ -70,14 +70,14 @@ class ReleaseEvidenceTests(unittest.TestCase):
         smoke["commit"] = "2" * 40
         self.write(path.name, smoke)
         with self.assertRaisesRegex(ValueError, "Frozen smoke identity"):
-            release.validate_runtime_reports(self.folder, "1.2.3", self.commit)
+            release.validate_runtime_reports(self.folder, "1.3.0", self.commit)
 
     def test_missing_relocated_report_cannot_approve_original_pair(self):
         path = self.folder / "smoke-relocated-portable.json"
         # Retain the withheld report as evidence instead of deleting a fixture.
         path.rename(path.with_suffix(".withheld.json"))
         with self.assertRaisesRegex(FileNotFoundError, "smoke-relocated-portable"):
-            release.validate_runtime_reports(self.folder, "1.2.3", self.commit)
+            release.validate_runtime_reports(self.folder, "1.3.0", self.commit)
 
     def test_relocated_report_from_other_commit_is_rejected(self):
         path = self.folder / "smoke-relocated-single.json"
@@ -85,12 +85,12 @@ class ReleaseEvidenceTests(unittest.TestCase):
         smoke["commit"] = "2" * 40
         self.write(path.name, smoke)
         with self.assertRaisesRegex(ValueError, "Frozen smoke identity failed: relocated-single"):
-            release.validate_runtime_reports(self.folder, "1.2.3", self.commit)
+            release.validate_runtime_reports(self.folder, "1.3.0", self.commit)
 
     def test_prepare_rejects_previous_version_before_git_or_archive_writes(self):
         (self.folder / "VERSION").write_text("1.2.2\n", encoding="utf-8")
         with mock.patch.object(release, "ROOT", self.folder), mock.patch.object(release, "git") as git:
-            with self.assertRaisesRegex(ValueError, "restricted to 1.2.3"):
+            with self.assertRaisesRegex(ValueError, "restricted to 1.3.0"):
                 release.prepare(self.folder)
             git.assert_not_called()
         self.assertFalse((self.folder / "UI_Center_v1.2.2_Source.zip").exists())
@@ -98,13 +98,13 @@ class ReleaseEvidenceTests(unittest.TestCase):
 
 class ReleaseNotesTests(unittest.TestCase):
     def test_release_body_omits_duplicate_version_title(self):
-        document = "# v1.2.3\n\n组件参数选项统一为中文。\n\n## 改动\n\n保留v1.2.2目录规则。\n"
-        self.assertEqual(release.release_notes_body(document, "1.2.3"),
+        document = "# v1.3.0\n\n组件参数选项统一为中文。\n\n## 改动\n\n保留v1.2.2目录规则。\n"
+        self.assertEqual(release.release_notes_body(document, "1.3.0"),
                          "组件参数选项统一为中文。\n\n## 改动\n\n保留v1.2.2目录规则。")
 
     def test_stale_release_document_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "current version title"):
-            release.release_notes_body("# v1.2.2\n\n旧版内容。\n", "1.2.3")
+            release.release_notes_body("# v1.2.2\n\n旧版内容。\n", "1.3.0")
 
 
 if __name__ == "__main__":

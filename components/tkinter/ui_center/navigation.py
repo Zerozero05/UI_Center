@@ -12,18 +12,20 @@ def _choice_colors(button, palette, selected=False):
     if disabled:
         button._ui_center_hovered = False
     selected = selected and not disabled
-    background = (palette["selected_background"] if selected else
+    selected_background = palette.get("accent_soft", palette["selected_background"])
+    selected_foreground = palette["accent"] if "accent_soft" in palette else palette["selected_foreground"]
+    background = (selected_background if selected else
                   palette["hover"] if button._ui_center_hovered else palette["surface"])
     foreground = (palette["disabled"] if disabled else
-                  palette["selected_foreground"] if selected else palette["foreground"])
+                  selected_foreground if selected else palette["foreground"])
     button.configure(background=background, foreground=foreground,
-                     activebackground=palette["selected_background"] if selected else
+                     activebackground=selected_background if selected else
                      palette["surface"] if disabled else palette["hover"],
                      activeforeground=foreground,
                      disabledforeground=palette["disabled"],
-                     highlightbackground=palette["border"], highlightcolor=palette["focus"])
+                     highlightbackground=palette.get("divider", palette["border"]), highlightcolor=palette["focus"])
     if isinstance(button, tk.Radiobutton):
-        button.configure(selectcolor=palette["surface"] if disabled else palette["selected_background"])
+        button.configure(selectcolor=palette["surface"] if disabled else selected_background)
 
 
 def _bind_choice_hover(button, repaint):
@@ -71,7 +73,7 @@ class Tabs(ttk.Frame):
                                 highlightthickness=1, wraplength=160, takefocus=False,
                                 state="disabled" if disabled else "normal")
         index = len(self._pages)
-        button.grid(row=0, column=index, sticky="nsew")
+        button.grid(row=0, column=index, sticky="nsew", padx=(0 if index == 0 else 3, 0))
         self.header.columnconfigure(index, weight=1, uniform="tabs")
         self._pages[key], self._buttons[key] = page, button
         _bind_choice_hover(button, lambda: self.apply_palette(self.palette))
@@ -274,7 +276,7 @@ class SegmentedControl(ttk.Frame):
                                     highlightthickness=1, borderwidth=0, relief="flat",
                                     offrelief="flat", overrelief="flat", wraplength=140,
                                     state="disabled" if key in disabled else "normal")
-            button.grid(row=0, column=index, sticky="nsew")
+            button.grid(row=0, column=index, sticky="nsew", padx=(0 if index == 0 else 2, 0))
             self.columnconfigure(index, weight=1, uniform="segments")
             self._buttons[key] = button
             _bind_choice_hover(button, lambda: self.apply_palette(self.palette))

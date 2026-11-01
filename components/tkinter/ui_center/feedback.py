@@ -6,6 +6,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import time
 import tkinter as tk
 from tkinter import ttk
+from tkinter import font as tkfont
 
 
 _KINDS = {"info": ("提示", "accent"), "success": ("成功", "success"),
@@ -25,6 +26,8 @@ class InlineAlert(tk.Frame):
                  action_text="处理", on_action=None, **kwargs):
         super().__init__(master, highlightthickness=1, padx=12, pady=10, **kwargs)
         self.palette = palette
+        self._rail = tk.Frame(self, borderwidth=0, takefocus=False)
+        self._rail.place(x=0, y=0, width=3, relheight=1, bordermode="outside")
         self._fit_id = None
         self._body_width = None
         self.columnconfigure(0, weight=1)
@@ -43,7 +46,8 @@ class InlineAlert(tk.Frame):
         self.body.bind("<Configure>", self._body_resized)
         self.action = None
         if on_action is not None:
-            self.action = ttk.Button(self, text=action_text, command=on_action, takefocus=True)
+            self.action = ttk.Button(self, text=action_text, command=on_action, takefocus=True,
+                                      style="UIC.Secondary.TButton")
             self.action.grid(row=2, column=0, sticky="w", pady=(8, 0))
         self.bind("<Configure>", self._wrap)
         self.bind("<Destroy>", self._on_destroy, add="+")
@@ -104,8 +108,11 @@ class InlineAlert(tk.Frame):
     def apply_palette(self, palette):
         self.palette = palette
         _label, role = _semantic(self.kind)
-        self.configure(background=palette["surface"], highlightbackground=palette[role])
-        self.title_label.configure(background=palette["surface"], foreground=palette[role])
+        self.configure(background=palette["surface"], highlightbackground=palette.get("divider", palette["border"]))
+        self._rail.configure(background=palette[role])
+        font = tkfont.nametofont("TkDefaultFont", root=self)
+        self.title_label.configure(background=palette["surface"], foreground=palette[role],
+                                   font=(font.actual("family"), font.actual("size"), "bold"))
         self.body.master.configure(background=palette["surface"])
         self.body.configure(background=palette["surface"], foreground=palette["foreground"],
                             insertbackground=palette["foreground"],
@@ -131,6 +138,8 @@ class Toast(tk.Frame):
             raise ValueError("Toast duration must be nonnegative")
         super().__init__(master, highlightthickness=1, padx=10, pady=8, **kwargs)
         self.palette, self.message, self.kind = palette, str(message), kind
+        self._rail = tk.Frame(self, borderwidth=0, takefocus=False)
+        self._rail.place(x=0, y=0, width=3, relheight=1, bordermode="outside")
         self.duration, self.on_close = int(duration), on_close
         self._timer = None
         self._focus_timer = None
@@ -145,7 +154,8 @@ class Toast(tk.Frame):
         self.columnconfigure(0, weight=1)
         self.label = tk.Label(self, anchor="w", justify="left", wraplength=360, font="TkDefaultFont")
         self.label.grid(row=0, column=0, sticky="ew", padx=(0, 8))
-        self.close_button = ttk.Button(self, text="关闭", command=self.hide, takefocus=True)
+        self.close_button = ttk.Button(self, text="关闭", command=self.hide, takefocus=True,
+                                        style="UIC.Secondary.TButton")
         self.close_button.grid(row=0, column=1, sticky="ne")
         for widget in (self, self.label, self.close_button):
             widget.bind("<Enter>", lambda event: self._set_hover(True), add="+")
@@ -278,7 +288,8 @@ class Toast(tk.Frame):
     def apply_palette(self, palette):
         self.palette = palette
         label, role = _semantic(self.kind)
-        self.configure(background=palette["surface"], highlightbackground=palette[role])
+        self.configure(background=palette["surface"], highlightbackground=palette.get("divider", palette["border"]))
+        self._rail.configure(background=palette[role])
         self.label.configure(text=label + " · " + self.message,
                              background=palette["surface"], foreground=palette["foreground"])
 
@@ -312,13 +323,16 @@ class EmptyState(tk.Frame):
         super().__init__(master, padx=16, pady=16, **kwargs)
         self.palette, self.on_action = palette, on_action
         self.columnconfigure(0, weight=1)
+        self._illustration = tk.Canvas(self, width=64, height=52, borderwidth=0, highlightthickness=0,
+                                        takefocus=False)
+        self._illustration.grid(row=0, column=0, pady=(0, 12))
         self.title_label = tk.Label(self, font="TkDefaultFont", justify="center")
-        self.title_label.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        self.title_label.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         self.message_label = tk.Label(self, font="TkDefaultFont", justify="center")
-        self.message_label.grid(row=1, column=0, sticky="ew")
-        self.action = ttk.Button(self, command=self._invoke, takefocus=True)
+        self.message_label.grid(row=2, column=0, sticky="ew")
+        self.action = ttk.Button(self, command=self._invoke, takefocus=True, style="UIC.Primary.TButton")
         if on_action is not None:
-            self.action.grid(row=2, column=0, pady=(12, 0))
+            self.action.grid(row=3, column=0, pady=(16, 0))
         self.bind("<Configure>", self._wrap)
         self.set_state(kind, title=title, message=message, action_text=action_text)
 
@@ -347,5 +361,22 @@ class EmptyState(tk.Frame):
     def apply_palette(self, palette):
         self.palette = palette
         self.configure(background=palette["surface"])
-        self.title_label.configure(background=palette["surface"], foreground=palette["foreground"])
+        canvas = self._illustration
+        canvas.configure(background=palette["surface"])
+        canvas.delete("all")
+        canvas.create_oval(8, 0, 56, 48, fill=palette.get("accent_soft", palette["hover"]), outline="")
+        color = palette["accent"]
+        if self.kind == "no-results":
+            canvas.create_oval(20, 10, 39, 29, outline=color, width=2)
+            canvas.create_line(37, 28, 46, 37, fill=color, width=2, capstyle="round")
+        elif self.kind == "first-use":
+            canvas.create_rectangle(21, 9, 42, 37, outline=color, width=2)
+            canvas.create_line(26, 18, 37, 18, fill=color, width=2)
+            canvas.create_line(26, 25, 34, 25, fill=color, width=2)
+        else:
+            canvas.create_line(17, 20, 17, 35, 47, 35, 47, 20, fill=color, width=2)
+            canvas.create_line(22, 26, 29, 26, 29, 29, 35, 29, 35, 26, 42, 26, fill=color, width=2)
+        font = tkfont.nametofont("TkDefaultFont", root=self)
+        self.title_label.configure(background=palette["surface"], foreground=palette["foreground"],
+                                   font=(font.actual("family"), font.actual("size"), "bold"))
         self.message_label.configure(background=palette["surface"], foreground=palette["muted"])

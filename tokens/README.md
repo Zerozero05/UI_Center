@@ -7,9 +7,12 @@
 | themes.light/dark/warm/sage | 浅色、深色、暖纸、灰绿四套配色共享同一组角色。background/surface 为区域；foreground/muted 为正文/辅助文字；accent 为主动作；selected_background/selected_foreground 为选中配色；其余用于输入、边框、悬停、禁用、焦点和结果状态 |
 | spacing | xs/sm/md/lg/xl 为间距级别，Tk 采用布局像素，Android 转 dp；显示缩放仍需各平台验证 |
 | typography | body/small/heading 为字号角色，每个角色分别给出 tk_points 与 android_sp；系统字体由平台选择 |
-| radii.control | Android 控件圆角 dp；ttk 能力不同，使用其原生主题边界，不承诺像素级一致 |
+| themes.*.divider / accent_soft | v1.3.0装饰分隔/浅选中面；不替代border/focus。Tk用于框线、文字选择和平台标记；Android可通过现有color(role)读取，目前不改变其原控件映射 |
+| radii.control | Android 控件圆角 dp；Tk按钮九宫格边框按布局像素读取，默认6。两端不承诺像素级一致 |
 
 两端使用相同 JSON。Tk 调用方显式指定文件路径；Android 示例的 assets 源目录指向本文件所在目录，构建产物中会有参数副本，但它不是第二份手写源。复制到独立应用后，参数副本由消费项目按采用提交维护。
+
+v1.3.0保留schema_version=1和原有语义键；旧消费参数文件缺少两个新增装饰角色时，Tk读取后仅在内存派生默认值，不回写文件。建议整体更新组件目录和JSON；按钮绘图辅助模块也属于源码包。Android现有通用color(role)可访问新增角色，原生控件的状态语义和字号映射保持；共享色值变化须经构建验证，设备视觉不由Tk检查替代。
 
 Tk 的 `apply_theme(root, mode='light', *, tokens_path=None, font_scale=1.0)` 保留原默认配色/基础字号接口，增加 `warm` / `sage` 与显式字体倍率。JSON 中 `body.tk_points=10` 继续作为共享基础值；桌面工作台采用1.2倍得到默认12pt正文，100% / 125% / 150%选择对应实际倍率1.2 / 1.5 / 1.8、正文12 / 15 / 18pt。它不改写 JSON，不修改 Windows 显示缩放，也不强迫独立消费项目使用工作台字号。
 

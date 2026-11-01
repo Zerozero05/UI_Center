@@ -21,7 +21,8 @@ class ActionBar(ttk.Frame):
         self.primary.pack(side="left")
         self.secondary = None
         if on_secondary is not None:
-            self.secondary = ttk.Button(self, text=secondary_text, command=on_secondary, takefocus=True)
+            self.secondary = ttk.Button(self, text=secondary_text, command=on_secondary, takefocus=True,
+                                         style="UIC.Secondary.TButton")
             self.secondary.pack(side="left", padx=gap["sm"])
         self.cancel = ttk.Button(self, text="取消任务", command=on_cancel, takefocus=True)
         self.cancel.pack(side="right")

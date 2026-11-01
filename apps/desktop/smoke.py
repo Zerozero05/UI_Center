@@ -73,6 +73,10 @@ def run_smoke(app, report_path):
         report["resources"] = [{"path": name, "sha256": hashlib.sha256((app.store.root / name).read_bytes()).hexdigest()}
                                for name in REQUIRED_RESOURCES]
         check("offline_original_resources", len(report["resources"]) == len(REQUIRED_RESOURCES))
+        check("design_reference_is_available_offline", "18" in app.store.read("docs/design-refresh.md")
+              and "divider" in app.store.read("DESIGN.md"))
+        check("native_rounded_buttons_are_loaded", bool(getattr(root, "_uic_button_images", {}))
+              and {"divider", "accent_soft"}.issubset(app.palette))
         check("real_browser_widgets", "spinner" in app.entries.get_children() and app.description.text.winfo_exists())
         app.query.set("shummer")
         check("english_alias_search", app.entries.get_children() == ("shimmer",))

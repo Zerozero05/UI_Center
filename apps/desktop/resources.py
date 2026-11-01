@@ -6,7 +6,7 @@ import re
 
 REPOSITORY_URL = "https://github.com/Zerozero05/UI_Center"
 REQUIRED_RESOURCES = (
-    "VERSION", "LICENSE", "THIRD_PARTY_NOTICES.md", "VALIDATION.md",
+    "VERSION", "LICENSE", "THIRD_PARTY_NOTICES.md", "VALIDATION.md", "DESIGN.md", "docs/design-refresh.md",
     "docs/design-guide.md", "docs/patterns.md", "docs/cases.md", "docs/consumption.md",
     "docs/components/loading.md", "docs/components/overlays.md", "docs/components/navigation-feedback.md",
     "components/tkinter/README.md", "components/android/README.md",
