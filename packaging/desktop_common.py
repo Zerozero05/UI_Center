@@ -33,7 +33,7 @@ def sha256(data):
 
 def asset_names(root=ROOT):
     """An allowlist, never an archive of the working directory."""
-    names = set(ROOT_DATA + EXAMPLE_DATA + ("references/sources.md", "tokens/README.md", ICON_DATA))
+    names = set(ROOT_DATA + EXAMPLE_DATA + ("references/sources.md", "references/licenses/galaxy-MIT.txt", "tokens/README.md", ICON_DATA))
     for pattern in ("docs/**/*.md", "components/*/README.md", "tokens/*.json"):
         names.update(path.relative_to(root).as_posix() for path in root.glob(pattern) if path.is_file())
     return sorted(names)

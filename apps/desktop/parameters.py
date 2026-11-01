@@ -130,9 +130,11 @@ class MappedCombo(ttk.Combobox):
 
 class ParameterForm(ttk.Frame):
     """Keep label/control groups intact and wrap them at their measured width."""
-    def __init__(self, master, *, palette):
+    def __init__(self, master, *, palette, min_width=120):
         super().__init__(master, height=1, width=1)
         self.palette = palette
+        self.min_width = min_width
+        self.stacked = False
         self._groups, self._choices = [], []
         self._pending = None
         self.bind("<Configure>", self._queue)
@@ -164,8 +166,8 @@ class ParameterForm(ttk.Frame):
         x = y = row_height = 0
         for field in self._groups:
             preferred = field._parameter_preferred() if hasattr(field, "_parameter_preferred") else field.winfo_reqwidth()
-            width = min(available, max(120, preferred))
-            if x and x + width > available:
+            width = available if self.stacked else min(available, max(self.min_width, preferred))
+            if x and (self.stacked or x + width > available):
                 x, y, row_height = 0, y + row_height + 12, 0
             if field._parameter_title is not None:
                 field._parameter_title.configure(wraplength=max(40, width))
@@ -177,6 +179,11 @@ class ParameterForm(ttk.Frame):
         if int(self.cget("height")) != height:
             self.configure(height=height)
 
+    def set_stacked(self, stacked):
+        if self.stacked != bool(stacked):
+            self.stacked = bool(stacked)
+            self._queue()
+
     def choice(self, label, variable, options, command=None):
         group = self.group(label)
         control = ParameterChoice(group, variable=variable, options=options, palette=self.palette, command=command)
@@ -187,7 +194,7 @@ class ParameterForm(ttk.Frame):
         return control
 
     def preferred_width(self):
-        return sum(max(120, field.winfo_reqwidth()) for field in self._groups) + max(0, len(self._groups)-1) * 12
+        return sum(max(self.min_width, field.winfo_reqwidth()) for field in self._groups) + max(0, len(self._groups)-1) * 12
 
     def combo(self, label, variable, options, command=None, width=14):
         group = self.group(label)

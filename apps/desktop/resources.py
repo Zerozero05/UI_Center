@@ -12,7 +12,7 @@ REQUIRED_RESOURCES = (
     "components/tkinter/README.md", "components/android/README.md",
     "examples/tkinter/README.md", "examples/android/README.md",
     "tokens/README.md", "tokens/design-tokens.json", "references/sources.md",
-    "apps/desktop/app.ico",
+    "apps/desktop/app.ico", "references/licenses/galaxy-MIT.txt",
 )
 
 

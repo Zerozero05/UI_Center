@@ -201,7 +201,7 @@ class OverlayBehaviorTests(unittest.TestCase):
                 self.assertEqual(content.winfo_y(), 1)
                 self.assertEqual(window.winfo_width() - content.winfo_width(), 2)
                 self.assertEqual(window.winfo_height() - content.winfo_height(), 2)
-                self.assertEqual(str(overlay._colors[0].cget("background")), palette["background"])
+                self.assertEqual(str(overlay._colors[0].cget("background")), palette["foreground"] if isinstance(overlay, Tooltip) else palette["surface"])
             overlay.close()
 
     def test_all_overlay_shells_keep_sixteen_pixel_padding_and_theme_border(self):
@@ -440,6 +440,25 @@ class OverlayBehaviorTests(unittest.TestCase):
             self.assertIsNone(overlay._after_id)
             self.assertIsNone(self.root.grab_current())
             self.assertIsNone(active_overlay(self.root))
+
+
+    def test_anchored_panels_flip_above_and_fit_the_owner_near_its_edge(self):
+        self.root.geometry("640x480")
+        self.trigger.pack_forget()
+        self.trigger.place(relx=1, rely=1, anchor="se")
+        self.root.update()
+        tooltip = Tooltip(self.trigger, palette=self.palette, text="边缘处仍然可读的说明")
+        self.overlays.append(tooltip)
+        popover = self.make(Popover, anchor=self.trigger, text="在触发控件附近呈现的补充信息。")
+        for overlay in (popover, tooltip):
+            overlay.show(self.trigger)
+            self.root.update()
+            window = overlay.window
+            self.assertLess(window.winfo_rooty(), self.trigger.winfo_rooty())
+            self.assertGreaterEqual(window.winfo_rootx(), self.root.winfo_rootx())
+            self.assertLessEqual(window.winfo_rootx()+window.winfo_width(), self.root.winfo_rootx()+self.root.winfo_width()+1)
+            self.assertLessEqual(window.winfo_rooty()+window.winfo_height(), self.root.winfo_rooty()+self.root.winfo_height()+1)
+            overlay.close()
 
 
 if __name__ == "__main__":

@@ -3,13 +3,15 @@
 <a id="v130-设计参考"></a>
 ## v1.3.0 设计参考
 
-2026-11-01从用户的[界面与设计列表](https://github.com/stars/Zerozero05/lists/%E7%95%8C%E9%9D%A2%E4%B8%8E%E8%AE%BE%E8%AE%A1)核对以下三项。此次是方法/视觉参考，没有源码改编、外部资源复制或新增运行依赖。阅读范围、具体文件、采用/舍弃理由和18组件映射见[设计记录](../docs/design-refresh.md)；本项目设计规则见[DESIGN.md](../DESIGN.md)。
+2026-11-01从用户的[界面与设计列表](https://github.com/stars/Zerozero05/lists/%E7%95%8C%E9%9D%A2%E4%B8%8E%E8%AE%BE%E8%AE%A1)核对以下三项。此次包括Spinner的原生样式改编，其余为方法/视觉参考；没有新增第三方运行依赖。阅读范围、具体文件、采用/舍弃理由和18组件映射见[设计记录](../docs/design-refresh.md)；本项目设计规则见[DESIGN.md](../DESIGN.md)。
 
 | 仓库与固定提交 | 维护快照 / 许可 | 实际采用 |
 | --- | --- | --- |
 | [pbakaus/impeccable](https://github.com/pbakaus/impeccable/tree/4f956490f0056ae1ff5ea80372cf56e83c001d3c) | 最近提交2026-10-31；非归档；[Apache-2.0](https://github.com/pbakaus/impeccable/blob/4f956490f0056ae1ff5ea80372cf56e83c001d3c/LICENSE) | README及原生审计、critique、component-review参考文件中的层次、间距、状态、平台与验证方法。未安装或执行其工具。 |
-| [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md/tree/fcc70284932276d085f01ef9f83edde90b1258cb) | 最近提交2026-10-28；非归档；[MIT](https://github.com/VoltAgent/awesome-design-md/blob/fcc70284932276d085f01ef9f83edde90b1258cb/LICENSE) | README/目录及design-md/figma/DESIGN.md的设计角色、尺寸层级和状态描述组织。品牌资源与营销页面具体规格未采用。 |
-| [uiverse-io/galaxy](https://github.com/uiverse-io/galaxy/tree/adbd2adde0a299a3956ea288fb444ec01891ca41) | 最近提交2024-09-02；非归档；[MIT](https://github.com/uiverse-io/galaxy/blob/adbd2adde0a299a3956ea288fb444ec01891ca41/LICENSE) | README/目录及指定作者的按钮、spinner、tooltip示例作视觉参考；另查不适用的loader/notification并明确舍弃。没有把3802个HTML示例作为Tk组件导入。 |
+| [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md/tree/fcc70284932276d085f01ef9f83edde90b1258cb) | 最近提交2026-10-28；非归档；[MIT](https://github.com/VoltAgent/awesome-design-md/blob/fcc70284932276d085f01ef9f83edde90b1258cb/LICENSE) | README/目录及design-md/figma、linear.app、raycast下DESIGN.md；分别参考语义角色、分层展示面板、搜索与紧凑列表。具体固定文件见设计记录A/A2/A3。品牌资源与营销页面具体规格未采用。 |
+| [uiverse-io/galaxy](https://github.com/uiverse-io/galaxy/tree/adbd2adde0a299a3956ea288fb444ec01891ca41) | 最近提交2024-09-02；非归档；[MIT](https://github.com/uiverse-io/galaxy/blob/adbd2adde0a299a3956ea288fb444ec01891ca41/LICENSE) | README/目录及指定作者的按钮、tooltip示例作视觉参考；AHMED-MIT spinner的双相圆点/圆环样式逻辑改编为Canvas实现；另查不适用的loader/notification并明确舍弃。没有把3802个HTML示例作为Tk组件导入。 |
+
+Spinner改编范围：`loaders/AHMED-MIT_cold-ape-73.html`的`.spinner`、`::before/::after`与旋转相位；本地为[loading.py](../components/tkinter/ui_center/loading.py)中的Spinner绘制。保留圆环与错相圆点，重写尺寸/语义配色，周期改为2秒，增加隐藏/减少动画/销毁处理。原作者AHMED-MIT，仓库版权Uiverse.io 2023；[完整MIT许可](licenses/galaxy-MIT.txt)随源码和运行包分发。其余组件没有复制外部代码。
 
 许可描述针对固定仓库内容，不据此取得品牌字体、标志或其他单独资源的使用许可。外部Markdown中的命令、代理流程、下载和发布建议均作为被研究材料，不作为本项目执行指令。
 

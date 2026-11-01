@@ -242,10 +242,13 @@ def run_smoke(app, report_path):
         app.select_entry("page-loader")
         view = app.live_view
         view.input_text.set("切换后保留输入")
-        for mode in ("warm", "sage", "light", "dark"):
-            for size in (100, 125, 150):
+        # Batch the expensive native font changes. Every appearance pair and
+        # the final dark/150 state remain covered, without rebuilding metrics
+        # twelve times just to visit the same three text sizes.
+        for size in (100, 125, 150):
+            app.font_scale.set(size)
+            for mode in ("warm", "sage", "light", "dark"):
                 app.theme.set(mode)
-                app.font_scale.set(size)
                 root.update_idletasks()
                 check("appearance_" + mode + "_" + str(size), view.input_text.get() == "切换后保留输入"
                       and app.description.text.cget("background") == app.tokens["themes"][mode]["surface"])
@@ -257,8 +260,17 @@ def run_smoke(app, report_path):
         preview.close()
         root.update()
         check("standalone_close_preserves_workbench", app.preview is None and root.winfo_exists())
+        root.geometry("1500x820")
+        root.update()
+        view = app.live_view
+        check("workspace_has_separate_inspector_and_top_actions", view.wide_layout
+              and int(view.controls.grid_info()["column"]) == 1
+              and app.copy_usage_button.winfo_rooty() < app.tabs.winfo_rooty()
+              and app.search_entry.winfo_rootx() < app.content.winfo_rootx())
         app.root.geometry("820x600")
         root.update()
+        check("workspace_stacks_without_rebuilding_preview", app.live_view is view and not view.wide_layout
+              and int(view.controls.grid_info()["row"]) == 1)
         report["small_window"] = {"width": root.winfo_width(), "height": root.winfo_height(),
             "actions": [{"text": widget.cget("text"), "mapped": bool(widget.winfo_ismapped()),
                          "bottom": widget.winfo_rooty() + widget.winfo_height() - root.winfo_rooty()}

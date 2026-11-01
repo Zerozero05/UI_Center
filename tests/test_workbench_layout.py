@@ -79,6 +79,7 @@ class WorkbenchLayoutTests(unittest.TestCase):
         view.long_text.set(True)
         view.kind.set("error")
         view._update_alert()
+        self.app.toggle_appearance()
         self.root.geometry("1500x820")
         self.root.update()
         self.assertTrue(self.app._header_inline)
@@ -91,7 +92,7 @@ class WorkbenchLayoutTests(unittest.TestCase):
         self.assertTrue(view.long_text.get())
         self.assertEqual(view.kind.get(), "error")
         self.assertIn("kind='error'", view.code())
-        self.assertEqual(int(view._controls_actions.grid_info()["row"]), 0)
+        self.assertEqual(int(view._controls_actions.grid_info()["row"]), 3)
 
     def test_short_and_overflowing_surface_and_scoped_wheel(self):
         self.app.select_entry("spinner")
@@ -126,6 +127,64 @@ class WorkbenchLayoutTests(unittest.TestCase):
                 self.assertEqual(self.app.current_code(), view.code())
                 self.app._show_code()
                 self.assertIn(view.code().rstrip(), self.app.usage.text.get("1.0", "end-1c"))
+
+
+    def test_workspace_separates_inspector_and_stacks_without_replacing_inputs(self):
+        self.root.geometry("1500x820")
+        self.app.select_entry("inline-alert")
+        view = self.app.live_view
+        view.long_text.set(True)
+        view.kind.set("error")
+        view._update_alert()
+        self.root.update()
+        self.assertTrue(view.wide_layout)
+        self.assertEqual(int(view.controls.grid_info()["column"]), 1)
+        self.assertTrue(view.form.stacked)
+        self.assertLess(self.app.search_entry.winfo_rootx(), self.app.content.winfo_rootx())
+        self.assertLess(self.app.copy_usage_button.winfo_rooty(), self.app.tabs.winfo_rooty())
+        self.root.geometry("820x600")
+        self.app.font_scale.set(150)
+        self.root.update()
+        self.assertIs(self.app.live_view, view)
+        self.assertFalse(view.wide_layout)
+        self.assertEqual(int(view.controls.grid_info()["row"]), 1)
+        self.assertEqual(int(view.controls.grid_info()["column"]), 0)
+        self.assertFalse(view.form.stacked)
+        self.assertTrue(view.long_text.get())
+        self.assertEqual(view.kind.get(), "error")
+        self.assertIn("kind='error'", view.code())
+
+    def test_component_switch_removes_old_viewport_bindings(self):
+        canvas = self.app.preview_surface.canvas
+        for key, *_rest in CORE_COMPONENTS:
+            self.app.select_entry(key)
+            self.root.update()
+            self.assertEqual(canvas.bind("<Configure>").count("_queue_workspace"), 1, key)
+        self.app.select_entry("guide-hierarchy")
+        self.root.update()
+        self.assertNotIn("_queue_workspace", canvas.bind("<Configure>"))
+
+    def test_navigation_and_disclosures_preserve_the_current_component(self):
+        self.app.select_entry("inline-alert")
+        view = self.app.live_view
+        view.long_text.set(True)
+        view.kind.set("warning")
+        view._update_alert()
+        self.root.update()
+        self.assertFalse(self.app.appearance_form.winfo_ismapped())
+        self.assertFalse(self.app.filters.winfo_ismapped())
+        self.app.appearance_button.invoke()
+        self.app.filter_toggle.invoke()
+        self.root.update()
+        self.assertTrue(self.app.appearance_form.winfo_ismapped())
+        self.assertTrue(self.app.filters.winfo_ismapped())
+        self.assertIs(self.app.live_view, view)
+        self.assertTrue(view.long_text.get())
+        self.assertEqual(view.kind.get(), "warning")
+        self.app.section_buttons["资料与来源"].invoke()
+        self.root.update()
+        self.assertEqual(self.app.section.get(), "资料与来源")
+        self.assertEqual(self.app.section_buttons["资料与来源"].cget("style"), "UIC.NavSelected.TButton")
 
 
 if __name__ == "__main__":

@@ -179,11 +179,14 @@ class LoadingBehaviorTests(unittest.TestCase):
                 widget.set_animation(False)
             self.assertIsNone(widget._after_id)
             self.assertTrue(widget.running)
-            self.assertEqual(len(widget.canvas.find_all()), 3)
+            self.assertEqual(len(widget.canvas.find_all()), 15)
+            self.assertEqual(len(widget.canvas.find_withtag("rounded-mask")), 12)
             self.assertEqual(len(widget.canvas.find_withtag("placeholder")), 3)
             self.assertEqual(widget.canvas.find_withtag("shimmer"), ())
             self.assertEqual({widget.canvas.itemcget(item, "fill")
-                              for item in widget.canvas.find_all()}, {self.palette["hover"]})
+                              for item in widget.canvas.find_withtag("placeholder")}, {self.palette["hover"]})
+            self.assertEqual({widget.canvas.itemcget(item, "fill")
+                              for item in widget.canvas.find_withtag("rounded-mask")}, {self.palette["background"]})
             widget.destroy()
 
     def test_loading_button_uses_real_button_and_guards_reentry(self):

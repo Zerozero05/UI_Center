@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import tkinter as tk
 from tkinter import ttk
+from ._drawing import state_icon
 
 
 def active_overlay(widget):
@@ -36,6 +37,8 @@ class _Overlay:
         self._bindings = []
         self._after_id = None
         self._colors = []
+        self._heading_icons = []
+        self._heading_kind = "info"
         self._bordered = False
         self._master_binding = master.bind("<Destroy>", self._master_destroyed, add="+")
 
@@ -64,6 +67,7 @@ class _Overlay:
         self._trigger = trigger
         self._previous_grab = grabbed
         self._colors = []
+        self._heading_icons = []
         window = self.window = tk.Toplevel(self.master)
         window.withdraw()
         window.title(title)
@@ -136,9 +140,16 @@ class _Overlay:
 
     def _label(self, text, *, heading=False):
         options = {"text": text, "justify": "left", "anchor": "w", "wraplength": 420}
-        label = (ttk.Label(self.content, style="UIC.Heading.TLabel", **options) if heading
+        parent = self.content
+        if heading:
+            parent = ttk.Frame(self.content)
+            parent.pack(fill="x", pady=(0, 12))
+            icon = tk.Canvas(parent, width=28, height=28, highlightthickness=0, takefocus=False)
+            icon.pack(side="left", padx=(0, 12))
+            self._heading_icons.append(icon)
+        label = (ttk.Label(parent, style="UIC.Heading.TLabel", **options) if heading
                  else tk.Label(self.content, font="TkDefaultFont", **options))
-        label.pack(fill="x", pady=(0, 8 if heading else 16))
+        label.pack(side="left" if heading else "top", fill="x", expand=heading, pady=0 if heading else (0, 20))
         if heading:
             ttk.Separator(self.content).pack(fill="x", pady=(0, 16))
         label.bind("<Configure>", lambda event: label.configure(wraplength=max(100, event.width - 4)))
@@ -160,6 +171,19 @@ class _Overlay:
             self.window.configure(background=palette["border"] if self._bordered else palette["background"])
         for label in self._colors:
             label.configure(background=palette["background"], foreground=palette["foreground"])
+        for icon in self._heading_icons:
+            state_icon(icon, palette, self._heading_kind, background=palette["background"])
+
+    def _anchor_geometry(self, anchor, gap=8):
+        self.window.update_idletasks()
+        owner = anchor.winfo_toplevel()
+        left, top = owner.winfo_rootx(), owner.winfo_rooty()
+        right, bottom = left+owner.winfo_width(), top+owner.winfo_height()
+        width, height = self.window.winfo_reqwidth(), self.window.winfo_reqheight()
+        x = max(left, min(anchor.winfo_rootx(), right-width))
+        below = anchor.winfo_rooty()+anchor.winfo_height()+gap
+        y = below if below+height <= bottom else max(top, anchor.winfo_rooty()-gap-height)
+        return f"+{max(0,x)}+{max(0,y)}"
 
     def _cancel_after(self):
         if self._after_id is not None:
@@ -194,6 +218,7 @@ class _Overlay:
         self._previous_grab = None
         self.content = None
         self._colors.clear()
+        self._heading_icons.clear()
 
     def _window_destroyed(self, event):
         if event.widget is self.window:
@@ -246,6 +271,7 @@ class ConfirmDialog(_Overlay):
     def __init__(self, master, *, palette, title="确认操作", message="", confirm_text="确认",
                  cancel_text="取消", on_result=None, on_close=None):
         super().__init__(master, palette=palette, on_close=on_close)
+        self._heading_kind = "confirm"
         self.title, self.message = title, message
         self.confirm_text, self.cancel_text = confirm_text, cancel_text
         self.on_result = on_result
@@ -257,6 +283,7 @@ class ConfirmDialog(_Overlay):
         self.result = None
         self._label(self.title, heading=True)
         self._label(self.message)
+        ttk.Separator(self.content).pack(fill="x", pady=(0, 16))
         actions = ttk.Frame(self.content)
         actions.pack(fill="x")
         self.confirm_button = ttk.Button(actions, text=self.confirm_text, command=self.confirm,
@@ -298,6 +325,7 @@ class Drawer(_Overlay):
         if width < 160:
             raise ValueError("width must be at least 160")
         super().__init__(master, palette=palette, on_close=on_close)
+        self._heading_kind = "panel"
         self.title, self.message = title, message
         self.side, self.modal, self.width = side, bool(modal), int(width)
         self.reduced_motion = bool(reduced_motion)
@@ -362,8 +390,7 @@ class Popover(_Overlay):
         self.close_button = ttk.Button(self.content, text="关闭", command=self.close,
                                         style="UIC.Secondary.TButton")
         self.close_button.pack(anchor="e")
-        x, y = self.anchor.winfo_rootx(), self.anchor.winfo_rooty() + self.anchor.winfo_height()
-        self._present(focus=self.close_button, geometry=f"+{max(0, x)}+{max(0, y)}")
+        self._present(focus=self.close_button, geometry=self._anchor_geometry(self.anchor))
         self._bind(self.master.winfo_toplevel(), "<ButtonPress-1>", self._outside)
         self._bind(self.master.winfo_toplevel(), "<Escape>", self._escape)
         return True
@@ -371,6 +398,13 @@ class Popover(_Overlay):
     def _outside(self, event):
         if self.window is not None and event.widget.winfo_toplevel() is not self.window:
             self.close("outside")
+
+    def apply_palette(self, palette):
+        super().apply_palette(palette)
+        if self.content is not None:
+            self.content.configure(style="UIC.Popover.TFrame")
+            for label in self._colors:
+                label.configure(background=palette["surface"], foreground=palette["foreground"])
 
 
 class Tooltip(_Overlay):
@@ -428,10 +462,15 @@ class Tooltip(_Overlay):
         self._colors[-1].configure(wraplength=280)
         self._colors[-1].pack_configure(pady=0)
         self.window.attributes("-topmost", True)
-        x = self.master.winfo_rootx()
-        y = self.master.winfo_rooty() + self.master.winfo_height() + 8
-        self._present(geometry=f"+{max(0, x)}+{max(0, y)}")
+        self._present(geometry=self._anchor_geometry(self.master))
         return True
+
+    def apply_palette(self, palette):
+        super().apply_palette(palette)
+        if self.content is not None:
+            self.content.configure(style="UIC.Tooltip.TFrame")
+            for label in self._colors:
+                label.configure(background=palette["foreground"], foreground=palette["surface"])
 
     def dispose(self):
         if not self._disposed:

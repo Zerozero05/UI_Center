@@ -190,7 +190,7 @@ class NavigationFeedbackTests(unittest.TestCase):
                 self.assertEqual(int(other.cget("borderwidth")), 0)
                 self.assertEqual(other.cget("relief"), "flat")
                 self.assertEqual(other.cget("background"), palette["surface"])
-                self.assertEqual(selected.cget("background"), palette["accent_soft"])
+                self.assertEqual(selected.cget("background"), palette["surface"] if isinstance(component, Tabs) else palette["accent_soft"])
                 self.assertEqual(selected.cget("foreground"), palette["accent"])
                 other.event_generate("<Enter>")
                 self.root.update()

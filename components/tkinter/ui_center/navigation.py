@@ -13,7 +13,16 @@ def _choice_colors(button, palette, selected=False):
         button._ui_center_hovered = False
     selected = selected and not disabled
     selected_background = palette.get("accent_soft", palette["selected_background"])
-    selected_foreground = palette["accent"] if "accent_soft" in palette else palette["selected_foreground"]
+    indicator = getattr(button, "_uic_tab_indicator", None)
+    if indicator is not None:
+        selected_background = palette["surface"]
+        indicator.configure(background=palette["accent"])
+        if selected:
+            indicator.place(relx=0, rely=1, relwidth=1, height=3, anchor="sw", bordermode="outside")
+        else:
+            indicator.place_forget()
+    selected_foreground = (palette["accent"] if indicator is not None or "accent_soft" in palette
+                           else palette["selected_foreground"])
     background = (selected_background if selected else
                   palette["hover"] if button._ui_center_hovered else palette["surface"])
     foreground = (palette["disabled"] if disabled else
@@ -73,6 +82,7 @@ class Tabs(ttk.Frame):
                                 highlightthickness=1, wraplength=160, takefocus=False,
                                 state="disabled" if disabled else "normal")
         index = len(self._pages)
+        button._uic_tab_indicator = tk.Frame(button, borderwidth=0, takefocus=False)
         button.grid(row=0, column=index, sticky="nsew", padx=(0 if index == 0 else 3, 0))
         self.header.columnconfigure(index, weight=1, uniform="tabs")
         self._pages[key], self._buttons[key] = page, button
@@ -158,6 +168,7 @@ class Accordion(ttk.Frame):
         super().__init__(master, **kwargs)
         self.palette, self.multiple, self.on_change = palette, bool(multiple), on_change
         self._sections, self._buttons, self._titles = {}, {}, {}
+        self._cards = {}
         self._expanded = set()
         self.columnconfigure(0, weight=1)
         self.bind("<Configure>", self._wrap)
@@ -169,14 +180,18 @@ class Accordion(ttk.Frame):
     def add(self, key, *, text, expanded=False, disabled=False):
         if not isinstance(key, str) or not key or key in self._sections:
             raise ValueError("Section keys must be unique nonempty strings")
-        index = len(self._sections) * 2
-        button = tk.Button(self, text="▸ " + text, anchor="w", font="TkDefaultFont",
+        index = len(self._sections)
+        card = ttk.Frame(self, padding=4, style="UIC.Accordion.TFrame")
+        card.columnconfigure(0, weight=1)
+        card.grid(row=index, column=0, sticky="ew", pady=(0, 8))
+        self._cards[key] = card
+        button = tk.Button(card, text="▸ " + text, anchor="w", font="TkDefaultFont",
                            command=lambda: self.toggle(key), takefocus=not disabled,
                            state="disabled" if disabled else "normal", padx=10, pady=8,
                            relief="flat", overrelief="flat", borderwidth=0,
                            highlightthickness=1, wraplength=300)
-        button.grid(row=index, column=0, sticky="ew", pady=(0, 4))
-        body = ttk.Frame(self, padding=(14, 4, 8, 12))
+        button.grid(row=0, column=0, sticky="ew")
+        body = ttk.Frame(card, padding=(14, 8, 14, 16))
         self._sections[key], self._buttons[key], self._titles[key] = body, button, text
         _bind_choice_hover(button, lambda: self.apply_palette(self.palette))
         for sequence, direction in (("<Down>", 1), ("<Up>", -1), ("<Home>", "first"), ("<End>", "last")):
@@ -234,7 +249,7 @@ class Accordion(ttk.Frame):
             is_open = key in self._expanded
             self._buttons[key].configure(text=("▾ " if is_open else "▸ ") + self._titles[key])
             if is_open:
-                body.grid(row=index * 2 + 1, column=0, sticky="ew")
+                body.grid(row=1, column=0, sticky="ew")
             else:
                 body.grid_remove()
         self.apply_palette(self.palette)
@@ -261,6 +276,8 @@ class SegmentedControl(ttk.Frame):
     """Mutually exclusive, focusable options. ``on_change(value)`` reports changes."""
 
     def __init__(self, master, *, palette, options, value=None, disabled=(), on_change=None, **kwargs):
+        kwargs.setdefault("style", "UIC.Segmented.TFrame")
+        kwargs.setdefault("padding", 4)
         super().__init__(master, **kwargs)
         self.palette, self.on_change = palette, on_change
         self._buttons = {}

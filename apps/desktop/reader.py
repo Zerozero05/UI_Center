@@ -39,11 +39,18 @@ class DocumentReader(ttk.Frame):
                        highlightthickness=1, padx=gap["lg"], pady=gap["md"])
         family = tkfont.nametofont("TkDefaultFont", root=text).actual("family")
         size = max(1, round(tokens["typography"]["body"]["tk_points"] * font_scale))
-        text.configure(font=(family, size))
-        text.tag_configure("heading", font=(family, round(tokens["typography"]["heading"]["tk_points"] * font_scale), "bold"),
-                           spacing1=gap["md"], spacing3=gap["sm"])
-        text.tag_configure("bold", font=(family, size, "bold"))
-        text.tag_configure("code", font="TkFixedFont", background=palette["hover"], lmargin1=gap["md"], lmargin2=gap["md"],
+        # A repeated font assignment invalidates Tk's text metrics even when
+        # only colors changed. Preserve the font unless its value changed.
+        if text.tk.splitlist(text.cget("font")) != (family, str(size)):
+            text.configure(font=(family, size))
+        fonts = {"heading": (family, str(round(tokens["typography"]["heading"]["tk_points"] * font_scale)), "bold"),
+                 "bold": (family, str(size), "bold"), "code": ("TkFixedFont",)}
+        existing_tags = text.tag_names()
+        for tag, font in fonts.items():
+            if tag not in existing_tags or text.tk.splitlist(text.tag_cget(tag, "font")) != font:
+                text.tag_configure(tag, font=font)
+        text.tag_configure("heading", spacing1=gap["md"], spacing3=gap["sm"])
+        text.tag_configure("code", background=palette["hover"], lmargin1=gap["md"], lmargin2=gap["md"],
                            spacing1=max(1, gap["xs"] // 2), spacing3=max(1, gap["xs"] // 2))
         text.tag_configure("link", foreground=palette["accent"], underline=True)
         text.tag_configure("body", spacing3=gap["xs"], spacing2=2)

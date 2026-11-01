@@ -7,7 +7,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 import math
 import tkinter as tk
 from tkinter import ttk
-from ._drawing import ring, rounded_rect
+from tkinter import font as tkfont
+from ._drawing import blend, ring, rounded_rect
 
 
 def _progress(value, maximum):
@@ -117,7 +118,37 @@ class _AnimatedFrame(ttk.Frame):
 
 
 class Spinner(_AnimatedFrame):
-    """Unknown-duration indicator. start/stop never changes caller task state."""
+    """Unknown-duration indicator; start/stop never changes caller task state.
+
+    Native visual adaptation of AHMED-MIT's CSS spinner in uiverse-io/galaxy,
+    loaders/AHMED-MIT_cold-ape-73.html at adbd2adde0a299a3956ea288fb444ec01891ca41.
+    The two phased orbit markers and ring are retained; Canvas geometry,
+    semantic colors, a gentler 2s cycle, visibility and reduced-motion handling
+    replace CSS borders/shadows/keyframes. Original work: MIT, Uiverse.io 2023,
+    author AHMED-MIT. Full upstream notice: references/licenses/galaxy-MIT.txt.
+
+    MIT License
+
+    Copyright (c) 2023 Uiverse.io
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+    """
 
     def __init__(self, master, *, palette, size=40, text="正在加载", **kwargs):
         super().__init__(master, palette=palette, **kwargs)
@@ -143,10 +174,14 @@ class Spinner(_AnimatedFrame):
         p, size = self.palette, self.size
         self.canvas.configure(background=p["background"])
         self.canvas.delete("all")
-        width = max(2, size / 12)
-        bounds = (width, width, size - width, size - width)
-        ring(self.canvas, bounds, track=p["hover"], color=p["accent"], width=width,
-             start=90 - self._phase * 9, extent=100)
+        center, radius = size/2, size*.32
+        self.canvas.create_oval(center-radius, center-radius, center+radius, center+radius,
+                                outline=p["hover"], width=max(1,size/25))
+        for offset, color in ((0,p["accent"]), (216,blend(p["accent"],p["background"],.35))):
+            angle = math.radians(-90 - (self._phase % 40)*9 + offset)
+            x, y = center+radius*math.cos(angle), center+radius*math.sin(angle)
+            dot = max(1.4,size*.055)
+            self.canvas.create_oval(x-dot,y-dot,x+dot,y+dot,fill=color,outline="")
 
 
 class ProgressBar(_AnimatedFrame):
@@ -192,7 +227,8 @@ class ProgressBar(_AnimatedFrame):
         if self.mode == "determinate":
             end = 1 + (width - 2) * self.value / self.maximum
             if self.value:
-                rounded_rect(self.canvas, (1, 4, end, 14), 5, fill=p["accent"], outline="")
+                rounded_rect(self.canvas, (1, 4, end, 14), 5,
+                             fill=p["success"] if self.value == self.maximum else p["accent"], outline="")
             self.caption.configure(text=f"{self.value / self.maximum:.0%}")
         else:
             fraction = 0.35 if self.reduced_motion else (self._phase % 40) / 40
@@ -230,10 +266,11 @@ class CircularProgress(_AnimatedFrame):
         self.canvas.configure(background=p["background"])
         self.canvas.delete("all")
         bounds = (7, 7, size - 7, size - 7)
-        ring(self.canvas, bounds, track=p["hover"], color=p["accent"], width=6,
+        ring(self.canvas, bounds, track=p["hover"], color=p["success"] if self.value == self.maximum else p["accent"], width=6,
              start=90, extent=-360*self.value/self.maximum)
+        font = tkfont.nametofont("TkDefaultFont", root=self)
         self.canvas.create_text(size / 2, size / 2, text=f"{self.value / self.maximum:.0%}",
-                                fill=p["foreground"], font="TkDefaultFont")
+                                fill=p["foreground"], font=(font.actual("family"), max(8, min(round(size/7), font.actual("size")+2)), "bold"))
 
 
 class Skeleton(_AnimatedFrame):
@@ -308,6 +345,25 @@ class Skeleton(_AnimatedFrame):
         for index, (shape, bounds) in enumerate(self._placeholder_shapes(width)):
             draw = self.canvas.create_oval if shape == "oval" else self.canvas.create_rectangle
             draw(*bounds, fill=color, outline="", tags=("placeholder", f"shape-{index}"))
+        self._draw_highlight(width)
+        self._round_corners(width)
+
+    def _draw_highlight(self, width):
+        pass
+
+    def _round_corners(self, width):
+        # Corner masks are drawn after the effect, so a shimmer cannot leak
+        # through the rounded corners. Placeholder bounds/tags stay stable.
+        for shape, (x0, y0, x1, y1) in self._placeholder_shapes(width):
+            if shape == "oval":
+                continue
+            r = min(6, (y1-y0)/2, (x1-x0)/2)
+            arc = [(r+r*math.cos(math.radians(angle)), r+r*math.sin(math.radians(angle)))
+                   for angle in range(-90, -181, -10)]
+            corner = [(0, 0), (r, 0)] + arc + [(0, r)]
+            for right, bottom in ((False,False), (True,False), (True,True), (False,True)):
+                points = [(x1-x if right else x0+x, y1-y if bottom else y0+y) for x,y in corner]
+                self.canvas.create_polygon(points, fill=self.palette["background"], outline="", tags="rounded-mask")
 
 
 class Shimmer(Skeleton):
@@ -327,11 +383,9 @@ class Shimmer(Skeleton):
     def _placeholder_color(self):
         return self.palette["hover"]
 
-    def _draw(self):
-        super()._draw()
+    def _draw_highlight(self, width):
         if not (self.enabled and self.animate and self.running and not self.reduced_motion):
             return
-        width = self._canvas_width()
         half = max(24, min(80, width * 0.16))
         center = (self._phase % 40) / 40 * (width + 2 * half) - half
         base = self.winfo_rgb(self.palette["hover"])
@@ -408,8 +462,9 @@ class LoadingButton(_AnimatedFrame):
     def _draw(self):
         p = self.palette
         self.button.configure(text=self.busy_text if self.busy else self.text,
+                               style="UIC.Busy.TButton" if self.busy else "UIC.Primary.TButton",
                                padding=(44, 8, 12, 8) if self.busy else (12, 8))
-        self.canvas.configure(background=p["background"])
+        self.canvas.configure(background=p.get("accent_soft", p["hover"]) if self.busy else p["background"])
         self.canvas.delete("all")
         if self.busy:
             self.canvas.place(x=12, rely=.5, anchor="w", bordermode="outside")
@@ -428,23 +483,27 @@ class PageLoader(_AnimatedFrame):
             value, maximum = _progress(value, maximum)
         else:
             _, maximum = _progress(0, maximum)
+        kwargs.setdefault("style", "UIC.Loader.TFrame")
         super().__init__(master, palette=palette, padding=20, **kwargs)
         self.text, self.value, self.maximum = str(text), value, maximum
         self.on_cancel = on_cancel
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
-        self.rowconfigure(4, weight=1)
-        self.canvas = tk.Canvas(self, width=48, height=48, highlightthickness=0, takefocus=False)
-        self.canvas.grid(row=1, column=0)
-        self.caption = ttk.Label(self, text=self.text, anchor="center", wraplength=380)
-        self.caption.grid(row=2, column=0, sticky="ew", pady=(10, 4))
-        self.progress_label = ttk.Label(self, anchor="center", style="UIC.Muted.TLabel")
-        self.progress_label.grid(row=3, column=0, sticky="ew")
+        self.rowconfigure(2, weight=1)
+        self.card = tk.Frame(self, padx=24, pady=24, highlightthickness=1, takefocus=False)
+        self.card.grid(row=1, column=0)
+        self.card.columnconfigure(0, weight=1)
+        self.canvas = tk.Canvas(self.card, width=48, height=48, highlightthickness=0, takefocus=False)
+        self.canvas.grid(row=0, column=0)
+        self.caption = tk.Label(self.card, text=self.text, anchor="center", wraplength=340, font="TkDefaultFont")
+        self.caption.grid(row=1, column=0, sticky="ew", pady=(16, 6))
+        self.progress_label = tk.Label(self.card, anchor="center", font="TkDefaultFont")
+        self.progress_label.grid(row=2, column=0, sticky="ew")
         self.cancel_button = None
         if on_cancel is not None:
-            self.cancel_button = ttk.Button(self, text="取消", command=on_cancel, style="UIC.Secondary.TButton")
-            self.cancel_button.grid(row=4, column=0, pady=10)
-        self.bind("<Configure>", lambda event: self.caption.configure(wraplength=max(80, event.width - 40)), add="+")
+            self.cancel_button = ttk.Button(self.card, text="取消", command=on_cancel, style="UIC.Secondary.TButton")
+            self.cancel_button.grid(row=3, column=0, pady=(16,0))
+        self.bind("<Configure>", lambda event: self.caption.configure(wraplength=max(80, min(340,event.width-64))), add="+")
         self._draw()
 
     def set_text(self, text):
@@ -484,7 +543,10 @@ class PageLoader(_AnimatedFrame):
 
     def _draw(self):
         p = self.palette
-        self.canvas.configure(background=p["background"])
+        self.card.configure(background=p["surface"], highlightbackground=p.get("divider",p["border"]))
+        self.caption.configure(background=p["surface"], foreground=p["foreground"])
+        self.progress_label.configure(background=p["surface"], foreground=p["muted"])
+        self.canvas.configure(background=p["surface"])
         self.canvas.delete("all")
         ring(self.canvas, (5, 5, 43, 43), track=p["hover"], color=p["accent"], width=3,
              start=90-self._phase*9 if self.value is None else 90,

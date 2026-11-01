@@ -621,14 +621,14 @@ class WorkbenchIntegrationTests(unittest.TestCase):
                     self.app.font_scale.set(scale)
                     self.update()
                     for widget in (self.app.copy_ai_button, self.app.copy_usage_button,
-                                   self.app.preview_button, self.app.source_button, self.app.status_label,
-                                   self.app.live_view.reset_button):
+                                   self.app.preview_button, self.app.source_button, self.app.status_label):
                         self.assert_inside_root(widget)
                     surface = self.app.preview_surface
                     region = tuple(float(value) for value in surface.canvas.cget("scrollregion").split())
                     self.assertEqual(len(region), 4)
                     self.assertGreater(region[2], 0)
                     self.assertGreater(region[3], 0)
+                    self.assertIn(view.reset_button, view.start_button.master.winfo_children())
                     for button in view.start_button.master.winfo_children():
                         if not isinstance(button, ttk.Button):
                             continue

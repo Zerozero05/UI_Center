@@ -267,7 +267,7 @@ class BrowserWidgetTests(unittest.TestCase):
         empty.action.event_generate("<Control-f>")
         self.root.update()
         self.assertEqual(self.root.focus_get(), self.app.search_entry)
-        self.assertEqual(self.app.clear_search_button.cget("text"), "清空关键词")
+        self.assertEqual(self.app.clear_search_button.cget("text"), "清空")
         self.app.search_entry.event_generate("<Escape>")
         self.root.update()
         self.assertEqual(self.app.query.get(), "")

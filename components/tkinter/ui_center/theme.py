@@ -10,7 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import json
 from pathlib import Path
 from tkinter import font as tkfont, ttk
-from ._drawing import blend, button_layouts
+from ._drawing import blend, button_layouts, field_layouts
 
 
 def load_tokens(path=None):
@@ -43,13 +43,16 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
     typography = tokens["typography"]
     body_font = tkfont.nametofont("TkDefaultFont", root=root)
     point = lambda role: max(1, round(typography[role]["tk_points"] * font_scale))
-    body_font.configure(size=point("body"))
+    if body_font.actual("size") != point("body"):
+        body_font.configure(size=point("body"))
     family = body_font.actual("family")
     body = (family, point("body"))
     small = (family, point("small"))
     heading = (family, point("heading"), "bold")
     for name in ("TkTextFont", "TkFixedFont"):
-        tkfont.nametofont(name, root=root).configure(size=point("body"))
+        font = tkfont.nametofont(name, root=root)
+        if font.actual("size") != point("body"):
+            font.configure(size=point("body"))
     disabled = [("disabled", p["disabled"])]
     edge = [("disabled", p["border"]), ("focus", p["focus"]), ("active", p["accent"])]
     settings = {
@@ -67,6 +70,16 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
         "UIC.Muted.TLabel": {"configure": {"foreground": p["muted"], "font": small}},
         "UIC.Badge.TLabel": {"configure": {"background": p["accent_soft"], "foreground": p["accent"],
                                              "font": small, "padding": (8, 4)}},
+        "UIC.Preview.TFrame": {"configure": {"background": p["surface"], "borderwidth": 1,
+                                               "relief": "solid", "bordercolor": p["divider"],
+                                               "lightcolor": p["divider"], "darkcolor": p["divider"]}},
+        "UIC.Section.TLabel": {"configure": {"font": (family, point("body"), "bold")}},
+        "UIC.Loader.TFrame": {"configure": {"background": p["hover"]}},
+        "UIC.Popover.TFrame": {"configure": {"background": p["surface"]}},
+        "UIC.Tooltip.TFrame": {"configure": {"background": p["foreground"]}},
+        "UIC.Stage.TFrame": {"configure": {"background": p["surface"]}},
+        "UIC.Stage.TLabel": {"configure": {"background": p["surface"], "foreground": p["foreground"]}},
+        "UIC.Stage.Muted.TLabel": {"configure": {"background": p["surface"], "foreground": p["muted"], "font": small}},
         "TSeparator": {"configure": {"background": p["divider"]}},
         "UIC.Success.TLabel": {"configure": {"foreground": p["success"]}},
         "UIC.Warning.TLabel": {"configure": {"foreground": p["warning"]}},
@@ -95,6 +108,11 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
                     "lightcolor": [("focus", p["focus"]), ("!focus", p["surface"])],
                     "darkcolor": [("focus", p["focus"]), ("!focus", p["surface"])]},
         },
+        "UIC.Busy.TButton": {"configure": {"padding": (12, 8), "foreground": p["accent"]},
+                             "map": {"foreground": [("disabled", p["accent"])],
+                                     "background": [("disabled", p["accent_soft"]) ]}},
+        "UIC.Nav.TButton": {"configure": {"padding": (12, 8), "anchor": "w", "foreground": p["muted"]}},
+        "UIC.NavSelected.TButton": {"configure": {"padding": (12, 8), "anchor": "w", "foreground": p["accent"]}},
         "TEntry": {
             "configure": {"padding": (gap["sm"], gap["xs"]), "insertcolor": p["foreground"], "borderwidth": 1},
             "map": {"foreground": disabled, "fieldbackground": [("disabled", p["background"])],
@@ -130,8 +148,8 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
         "Horizontal.TProgressbar": {"configure": {"background": p["accent"],
             "troughcolor": p["hover"], "bordercolor": p["hover"], "lightcolor": p["accent"],
             "darkcolor": p["accent"], "thickness": 8}},
-        "TNotebook": {"configure": {"background": p["background"], "bordercolor": p["divider"], "borderwidth": 0,
-                                      "lightcolor": p["divider"], "darkcolor": p["divider"],
+        "TNotebook": {"configure": {"background": p["background"], "bordercolor": p["background"], "borderwidth": 0,
+                                      "lightcolor": p["background"], "darkcolor": p["background"],
                                       "tabmargins": (0, 0, 0, 6)}},
         "TNotebook.Tab": {"configure": {"padding": (12, 8), "background": p["background"],
                                           "foreground": p["muted"], "bordercolor": p["divider"],
@@ -154,11 +172,10 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
         style.theme_settings(name, settings)
     else:
         style.theme_create(name, parent="clam", settings=settings)
-    style.theme_use(name)
+    if style.theme_use() != name:
+        style.theme_use(name)
     button_layouts(root, style, p, tokens["radii"]["control"])
-    for direction, sticky in (("Vertical", "ns"), ("Horizontal", "ew")):
-        style.layout(direction + ".TScrollbar", [(direction + ".Scrollbar.trough", {
-            "sticky": sticky, "children": [(direction + ".Scrollbar.thumb", {"expand": "1", "sticky": "nswe"})]})])
+    field_layouts(root, style, p, tokens["radii"]["control"])
     # The combobox popup is a Tk listbox, not a ttk widget. Recolor already-opened
     # popdowns as well as future popdowns; do not open a popup to refresh it.
     for option, color in (("background", p["input_background"]), ("foreground", p["foreground"]),

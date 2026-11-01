@@ -1,6 +1,6 @@
 # Tk 弹层组件
 
-v1.3.0采用统一标题分隔、主次操作和主题表面，提示与触发控件留8px间隙、初始换行280px。保留模态、焦点、键盘、计时与回调规则；具体借鉴与未采用方案见[设计记录](../design-refresh.md)。
+v1.3.0采用原生矢量标题标记、标题/正文/操作分区；气泡使用独立内容表面，工具提示采用高对比反色，并与触发控件留8px间隙、初始换行280px。气泡与提示在所属窗口边缘调整位置或翻到上方。保留模态、焦点、键盘、计时与回调规则；具体借鉴与未采用方案见[设计记录](../design-refresh.md)。
 
 五种组件均在 Tk 主线程调用，只依赖 Python 标准库 `tkinter` / `ttk` 和本仓库主题。源码为 [overlays.py](../../components/tkinter/ui_center/overlays.py)，预览实现见 [previews_overlays.py](../../apps/desktop/previews_overlays.py)。复制 `ui_center/` 与 `tokens/design-tokens.json` 到自己的程序，保留 [许可与来源](../../THIRD_PARTY_NOTICES.md)。下面示例以脚本旁的 `tokens/` 为资源目录。
 

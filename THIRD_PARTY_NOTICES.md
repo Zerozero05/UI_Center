@@ -1,8 +1,8 @@
 # 许可与第三方声明
 
-## v1.3.0 设计方法参考
+## v1.3.0 设计参考与原生样式改编
 
-本轮参考Impeccable（Apache-2.0）、awesome-design-md（MIT）与Galaxy（MIT）的选定方法/视觉示例。固定提交、原许可及文件范围见[来源记录](references/sources.md#v130-设计参考)，具体采用与舍弃见[设计记录](docs/design-refresh.md)。没有复制HTML/CSS源码、上游Markdown段落、字体、图标、图片或脚本；新增Tk绘图、主题代码与说明由本项目编写，沿用AGPL-3.0-only。既有代码改编、原始版权及运行库许可继续保留。
+本轮参考Impeccable（Apache-2.0）、awesome-design-md（MIT）与Galaxy（MIT）的选定方法/视觉示例。固定提交、原许可及文件范围见[来源记录](references/sources.md#v130-设计参考)，具体采用与舍弃见[设计记录](docs/design-refresh.md)。Spinner将Galaxy中AHMED-MIT示例的双相圆点/圆环样式改编为原生Canvas，保留[完整MIT许可与版权](references/licenses/galaxy-MIT.txt)；本地尺寸、2秒周期、语义配色与生命周期处理为本项目改动。其余新增Tk实现由本项目编写，沿用AGPL-3.0-only；没有引入Web运行时、字体、图标或脚本。既有代码改编、原始版权及运行库许可继续保留。
 
 UI_Center 的代码采用 **GNU Affero General Public License version 3 only（SPDX：AGPL-3.0-only）**。完整许可见 [LICENSE](LICENSE)。本文件记录实际源码改编与方法参考，不替代上游许可。
 

@@ -7,6 +7,7 @@ import time
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font as tkfont
+from ._drawing import state_icon
 
 
 _KINDS = {"info": ("提示", "accent"), "success": ("成功", "success"),
@@ -26,15 +27,15 @@ class InlineAlert(tk.Frame):
                  action_text="处理", on_action=None, **kwargs):
         super().__init__(master, highlightthickness=1, padx=12, pady=10, **kwargs)
         self.palette = palette
-        self._rail = tk.Frame(self, borderwidth=0, takefocus=False)
-        self._rail.place(x=0, y=0, width=3, relheight=1, bordermode="outside")
+        self._icon = tk.Canvas(self, width=28, height=28, highlightthickness=0, takefocus=False)
         self._fit_id = None
         self._body_width = None
-        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self._icon.grid(row=0, column=0, rowspan=2, sticky="n", padx=(0,12))
         self.title_label = tk.Label(self, anchor="w", justify="left", font="TkDefaultFont")
-        self.title_label.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+        self.title_label.grid(row=0, column=1, sticky="ew", pady=(0, 4))
         box = tk.Frame(self, borderwidth=0)
-        box.grid(row=1, column=0, sticky="nsew")
+        box.grid(row=1, column=1, sticky="nsew")
         box.columnconfigure(0, weight=1)
         self.body = tk.Text(box, height=1, width=1, wrap="word", font="TkDefaultFont",
                             borderwidth=0, highlightthickness=1, takefocus=True, undo=False)
@@ -48,14 +49,14 @@ class InlineAlert(tk.Frame):
         if on_action is not None:
             self.action = ttk.Button(self, text=action_text, command=on_action, takefocus=True,
                                       style="UIC.Secondary.TButton")
-            self.action.grid(row=2, column=0, sticky="w", pady=(8, 0))
+            self.action.grid(row=2, column=1, sticky="w", pady=(8, 0))
         self.bind("<Configure>", self._wrap)
         self.bind("<Destroy>", self._on_destroy, add="+")
         self.set_message(message, kind=kind, title=title)
 
     def _wrap(self, event):
         if event.widget is self:
-            self.title_label.configure(wraplength=max(60, event.width - 30))
+            self.title_label.configure(wraplength=max(60, event.width - 72))
 
     def _body_resized(self, event):
         if event.width != self._body_width:
@@ -109,7 +110,7 @@ class InlineAlert(tk.Frame):
         self.palette = palette
         _label, role = _semantic(self.kind)
         self.configure(background=palette["surface"], highlightbackground=palette.get("divider", palette["border"]))
-        self._rail.configure(background=palette[role])
+        state_icon(self._icon, palette, self.kind)
         font = tkfont.nametofont("TkDefaultFont", root=self)
         self.title_label.configure(background=palette["surface"], foreground=palette[role],
                                    font=(font.actual("family"), font.actual("size"), "bold"))
@@ -138,8 +139,7 @@ class Toast(tk.Frame):
             raise ValueError("Toast duration must be nonnegative")
         super().__init__(master, highlightthickness=1, padx=10, pady=8, **kwargs)
         self.palette, self.message, self.kind = palette, str(message), kind
-        self._rail = tk.Frame(self, borderwidth=0, takefocus=False)
-        self._rail.place(x=0, y=0, width=3, relheight=1, bordermode="outside")
+        self._icon = tk.Canvas(self, width=28, height=28, highlightthickness=0, takefocus=False)
         self.duration, self.on_close = int(duration), on_close
         self._timer = None
         self._focus_timer = None
@@ -151,13 +151,14 @@ class Toast(tk.Frame):
         self._focused = False
         self._disposed = False
         self._layout = None
-        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self._icon.grid(row=0, column=0, sticky="n", padx=(0,10))
         self.label = tk.Label(self, anchor="w", justify="left", wraplength=360, font="TkDefaultFont")
-        self.label.grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        self.label.grid(row=0, column=1, sticky="ew", padx=(0, 8))
         self.close_button = ttk.Button(self, text="关闭", command=self.hide, takefocus=True,
                                         style="UIC.Secondary.TButton")
-        self.close_button.grid(row=0, column=1, sticky="ne")
-        for widget in (self, self.label, self.close_button):
+        self.close_button.grid(row=0, column=2, sticky="ne")
+        for widget in (self, self.label, self.close_button, self._icon):
             widget.bind("<Enter>", lambda event: self._set_hover(True), add="+")
             widget.bind("<Leave>", lambda event: self._set_hover(False), add="+")
             widget.bind("<FocusIn>", lambda event: self._set_focus(True), add="+")
@@ -174,7 +175,7 @@ class Toast(tk.Frame):
 
     def _wrap(self, event):
         if event.widget is self:
-            self.label.configure(wraplength=max(40, event.width - self.close_button.winfo_reqwidth() - 34))
+            self.label.configure(wraplength=max(40, event.width - self.close_button.winfo_reqwidth() - 74))
 
     def _cancel_timer(self):
         if self._timer is not None:
@@ -289,7 +290,7 @@ class Toast(tk.Frame):
         self.palette = palette
         label, role = _semantic(self.kind)
         self.configure(background=palette["surface"], highlightbackground=palette.get("divider", palette["border"]))
-        self._rail.configure(background=palette[role])
+        state_icon(self._icon, palette, self.kind)
         self.label.configure(text=label + " · " + self.message,
                              background=palette["surface"], foreground=palette["foreground"])
 
@@ -320,10 +321,10 @@ class EmptyState(tk.Frame):
 
     def __init__(self, master, *, palette, kind="first-use", title=None, message=None,
                  action_text=None, on_action=None, **kwargs):
-        super().__init__(master, padx=16, pady=16, **kwargs)
+        super().__init__(master, padx=24, pady=24, **kwargs)
         self.palette, self.on_action = palette, on_action
         self.columnconfigure(0, weight=1)
-        self._illustration = tk.Canvas(self, width=64, height=52, borderwidth=0, highlightthickness=0,
+        self._illustration = tk.Canvas(self, width=80, height=65, borderwidth=0, highlightthickness=0,
                                         takefocus=False)
         self._illustration.grid(row=0, column=0, pady=(0, 12))
         self.title_label = tk.Label(self, font="TkDefaultFont", justify="center")
@@ -376,7 +377,8 @@ class EmptyState(tk.Frame):
         else:
             canvas.create_line(17, 20, 17, 35, 47, 35, 47, 20, fill=color, width=2)
             canvas.create_line(22, 26, 29, 26, 29, 29, 35, 29, 35, 26, 42, 26, fill=color, width=2)
+        canvas.scale("all", 0, 0, 1.25, 1.25)
         font = tkfont.nametofont("TkDefaultFont", root=self)
         self.title_label.configure(background=palette["surface"], foreground=palette["foreground"],
-                                   font=(font.actual("family"), font.actual("size"), "bold"))
+                                   font=(font.actual("family"), font.actual("size")+2, "bold"))
         self.message_label.configure(background=palette["surface"], foreground=palette["muted"])

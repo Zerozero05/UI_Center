@@ -100,10 +100,9 @@ class NavigationFeedbackParameterTests(unittest.TestCase):
                 resets = [widget for widget in children if isinstance(widget, ttk.Button) and widget.cget("text") == "重置"]
                 self.assertEqual(resets, [view.reset_button])
                 self.assertEqual(view.reset_button.master, view.actions)
-                self.assertEqual(int(view.form.grid_info()["row"]), 0)
-                self.assertEqual(int(view.actions.grid_info()["row"]), 1 if key == "toast" else 0)
-                if key != "toast":
-                    self.assertEqual(int(view.actions.grid_info()["column"]), 1)
+                self.assertEqual(int(view.form.grid_info()["row"]), 2)
+                self.assertEqual(int(view.actions.grid_info()["row"]), 3)
+                self.assertEqual(int(view.actions.grid_info()["column"]), 0)
 
     def test_tabs_boolean_choices_callback_and_reset_keep_current_code(self):
         view = self.make_view("tabs")

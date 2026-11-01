@@ -1,6 +1,6 @@
 # 加载与进度组件（Tkinter）
 
-这些组件只显示调用方提供的状态，不读取文件、不访问网络，也不创建业务任务。源码在 [loading.py](../../components/tkinter/ui_center/loading.py)，交互预览在 [previews_loading.py](../../apps/desktop/previews_loading.py)。v1.3.0统一细轨道、圆头圆环和圆角进度条；列表骨架长短分层，扫光仍限于占位内。新增参考、固定文件及逐项调整见[设计记录](../design-refresh.md)，无第三方运行依赖。
+这些组件只显示调用方提供的状态，不读取文件、不访问网络，也不创建业务任务。源码在 [loading.py](../../components/tkinter/ui_center/loading.py)，交互预览在 [previews_loading.py](../../apps/desktop/previews_loading.py)。v1.3.0统一细轨道、圆头圆环、完成色和圆角进度条；骨架增加圆角轮廓，扫光在末层圆角裁剪内移动，加载按钮有独立忙碌外观，区域加载层采用居中提示卡。新增参考、固定文件及逐项调整见[设计记录](../design-refresh.md)，无第三方运行依赖。
 
 把 `components/tkinter/ui_center/` 和 `tokens/design-tokens.json` 复制到消费项目；以下完整示例假设二者与脚本同级。所有方法在 Tk UI 线程调用；工作线程结果先通过消费应用已有的 UI 调度机制转交。
 
@@ -15,6 +15,8 @@
 ## spinner
 
 **用途：** 总量未知的短时等待，配合明确说明显示仍在处理。
+
+**实现来源：** Galaxy中AHMED-MIT示例的原生Canvas样式改编，采用圆环与错相圆点；本地周期为2秒，配色和生命周期遵循组件中心，减少动画时保持静态。固定来源和MIT许可见[来源记录](../../references/sources.md#v130-设计参考)。
 
 **不适用条件：** 已知完成量时优先用 progress-bar；长时任务还需要应用自己的取消、失败或超时反馈。
 
