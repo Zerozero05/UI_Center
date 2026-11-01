@@ -35,6 +35,10 @@ def run_smoke(app, report_path):
 
     try:
         root = app.root
+        # Acceptance needs the same explicit viewports on small CI desktops;
+        # this affects only the owned smoke window, not system resolution.
+        root.maxsize(2000, 1400)
+        root.geometry("1180x820")
         callback_errors = []
         root.report_callback_exception = lambda _kind, error, _trace: callback_errors.append(str(error))
         root.update()

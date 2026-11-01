@@ -58,9 +58,9 @@ def ring(canvas, bounds, *, track, color, width, start, extent):
         canvas.create_oval(x-r, y-r, x+r, y+r, fill=color, outline="")
 
 
-@lru_cache(maxsize=128)
-def _button_pixels(size, fill, edge, canvas, radius, focus):
-    """Antialiased 9-slice image. Reconfigure retained images on font changes."""
+@lru_cache(maxsize=16)
+def _button_coverage(size, radius, focus):
+    """Color-independent coverage, shared by all states and themes."""
     thickness = 4 if focus else 1
     rows = []
     def inside(x, y, inset):
@@ -76,10 +76,25 @@ def _button_pixels(size, fill, edge, canvas, radius, focus):
                 if focus:
                     gap += inside(x+dx, y+dy, 2)
                 inner += inside(x+dx, y+dy, thickness)
-            color = blend(canvas, edge, outer/4)
-            if focus:
-                color = blend(color, canvas, gap/4)
-            row.append(blend(color, fill, inner/4))
+            row.append((outer, gap, inner))
+        rows.append(tuple(row))
+    return tuple(rows)
+
+
+@lru_cache(maxsize=128)
+def _button_pixels(size, fill, edge, canvas, radius, focus):
+    """Antialiased 9-slice image; cache pixel text, never Tk objects."""
+    colors, rows = {}, []
+    for coverage in _button_coverage(size, radius, focus):
+        row = []
+        for sample in coverage:
+            if sample not in colors:
+                outer, gap, inner = sample
+                color = blend(canvas, edge, outer/4)
+                if focus:
+                    color = blend(color, canvas, gap/4)
+                colors[sample] = blend(color, fill, inner/4)
+            row.append(colors[sample])
         rows.append("{" + " ".join(row) + "}")
     return " ".join(rows)
 

@@ -46,9 +46,17 @@ def apply_theme(root, mode="light", *, tokens_path=None, font_scale=1.0):
     if body_font.actual("size") != point("body"):
         body_font.configure(size=point("body"))
     family = body_font.actual("family")
-    body = (family, point("body"))
-    small = (family, point("small"))
-    heading = (family, point("heading"), "bold")
+    # Share the same font objects across themes. Literal font tuples in every
+    # theme force native metrics to be rebuilt when only colors change.
+    fonts = getattr(root._root(), "_uic_fonts", {})
+    for role, weight in (("small", "normal"), ("heading", "bold")):
+        values = {"family": family, "size": point(role), "weight": weight}
+        if role not in fonts:
+            fonts[role] = tkfont.Font(root=root, **values)
+        elif any(fonts[role].actual(option) != value for option, value in values.items()):
+            fonts[role].configure(**values)
+    root._root()._uic_fonts = fonts
+    body, small, heading = "TkDefaultFont", fonts["small"], fonts["heading"]
     for name in ("TkTextFont", "TkFixedFont"):
         font = tkfont.nametofont(name, root=root)
         if font.actual("size") != point("body"):

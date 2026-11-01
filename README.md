@@ -4,7 +4,7 @@
 
 当前正式运行版是 **[v1.2.3](https://github.com/Zerozero05/UI_Center/releases/tag/v1.2.3)**，提供18项真实 Tkinter 控件、中文用法与独立源码示例，保留已有规范和两端源码。两种Windows运行包已完成CI、本机及公开下载核验，具体范围见[验证记录](VALIDATION.md#v123-公开附件核验)。
 
-开发分支现为 **v1.3.0候选**：根据你的三个设计参考仓库，重做检索式侧边栏、按需展开的外观/筛选、顶部复用操作与“组件展示＋参数检查器”布局，并更新18组件/3旧预览的配色和状态，保留中文参数与组件接口。[设计约定](DESIGN.md)、[逐项映射与取舍](docs/design-refresh.md)、[候选说明](docs/releases/v1.3.0.md)与[验证记录](VALIDATION.md#v130-设计改进候选)可分别查阅。公开最新版及本机日常程序仍为v1.2.3，候选不自动发布或替换。
+开发分支现为 **v1.3.0候选**：根据你的三个设计参考仓库，重做检索式侧边栏、按需展开的外观/筛选、顶部复用操作与“组件展示＋参数检查器”布局，并更新18组件/3旧预览的配色和状态，保留中文参数与组件接口，复用字体和图像以减少重复刷新。[设计约定](DESIGN.md)、[逐项映射与取舍](docs/design-refresh.md)、[候选说明](docs/releases/v1.3.0.md)与[验证记录](VALIDATION.md#v130-设计改进候选)可分别查阅。公开最新版及本机日常程序仍为v1.2.3，候选不自动发布或替换。
 
 这里借鉴 shadcn/ui 的源码分发组织、Storybook 的状态示例、Style Dictionary 的参数共享，以及 Sun Valley、ttkbootstrap 和 Material Components Android 的主题/控件方法。实际采用内容、固定提交、改编文件及许可见[来源说明](references/sources.md)和[第三方通知](THIRD_PARTY_NOTICES.md)。这些外部 UI 库没有作为运行依赖引入。
 

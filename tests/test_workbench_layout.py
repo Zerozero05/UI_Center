@@ -21,6 +21,9 @@ class WorkbenchLayoutTests(unittest.TestCase):
         parent.mkdir(parents=True, exist_ok=True)
         self.directory = Path(tempfile.mkdtemp(dir=parent))
         self.root = tk.Tk()
+        # Tk's default maximum follows the runner's screen. Exercise the
+        # requested viewport sizes even on a 1024px CI desktop.
+        self.root.maxsize(2000, 1400)
         self.errors = []
         self.root.report_callback_exception = lambda *error: self.errors.append(error)
         self.app = BrowserApp(self.root, ResourceStore(ROOT), preferences_path=self.directory / "preferences.json")
